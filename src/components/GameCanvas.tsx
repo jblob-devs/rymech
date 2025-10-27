@@ -232,6 +232,11 @@ export default function GameCanvas({
 
     drawGrapplingHook(ctx, gameState.player, camera);
     drawPlayer(ctx, gameState.player, camera);
+    
+    gameState.remotePlayers?.forEach((remotePlayer) => {
+      drawRemotePlayer(ctx, remotePlayer.player, camera, remotePlayer.peerId.substring(0, 8));
+    });
+    
     drawDamageNumbers(ctx, gameState.damageNumbers, camera);
 
   }, [gameState, camera, obstacles, resourceNodes, portals, extractionPoints, chests, biomeFeatures, gameEngineRef]);
@@ -911,6 +916,65 @@ export default function GameCanvas({
       healthBarWidth * healthPercent,
       healthBarHeight
     );
+  };
+
+  const drawRemotePlayer = (ctx: CanvasRenderingContext2D, player: typeof gameState.player, camera: Camera, playerLabel: string) => {
+    const screenPos = camera.worldToScreen(player.position);
+
+    ctx.save();
+    ctx.translate(screenPos.x, screenPos.y);
+    ctx.rotate(player.rotation);
+
+    if (player.isDashing) {
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#ff00ff';
+    }
+
+    ctx.fillStyle = '#ff00ff';
+    ctx.beginPath();
+    ctx.moveTo(player.size / 2, 0);
+    ctx.lineTo(-player.size / 2, -player.size / 3);
+    ctx.lineTo(-player.size / 3, 0);
+    ctx.lineTo(-player.size / 2, player.size / 3);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#ff00ffdd';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const eyeOffset = player.size / 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eyeOffset, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    const healthBarWidth = player.size * 1.5;
+    const healthBarHeight = 4;
+    const healthPercent = player.health / player.maxHealth;
+
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(
+      screenPos.x - healthBarWidth / 2,
+      screenPos.y - player.size / 2 - 10,
+      healthBarWidth,
+      healthBarHeight
+    );
+
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(
+      screenPos.x - healthBarWidth / 2,
+      screenPos.y - player.size / 2 - 10,
+      healthBarWidth * healthPercent,
+      healthBarHeight
+    );
+
+    ctx.fillStyle = '#ff00ff';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(playerLabel, screenPos.x, screenPos.y - player.size / 2 - 18);
   };
 
   const drawEnemy = (ctx: CanvasRenderingContext2D, enemy: Enemy, camera: Camera) => {

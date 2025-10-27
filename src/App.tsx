@@ -3,10 +3,12 @@ import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
 import { GameEngine } from './game/GameEngine';
 import { GameState, Weapon } from './types/game';
-import { X, Archive, ShoppingCart, FlaskConical } from 'lucide-react';
+import { X, Archive, ShoppingCart, FlaskConical, Users } from 'lucide-react';
 import Minimap from './components/Minimap';
 import CraftingMenu from './components/CraftingMenu';
 import TouchControls from './components/TouchControls';
+import ConnectionMenu from './components/ConnectionMenu';
+import { MultiplayerManager } from './game/MultiplayerManager';
 
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -22,6 +24,13 @@ function App() {
   const [touchControlsVisible, setTouchControlsVisible] = useState(false);
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchShootRef = useRef({ x: 0, y: 0, active: false });
+  
+  const [isMultiplayerOpen, setMultiplayerOpen] = useState(false);
+  const [multiplayerManager] = useState(() => new MultiplayerManager());
+  const [multiplayerRole, setMultiplayerRole] = useState<'host' | 'client' | 'none'>('none');
+  const [peerId, setPeerId] = useState('');
+  const [connectionCount, setConnectionCount] = useState(0);
+  const lastSyncTime = useRef(0);
 
   useEffect(() => {
     const engine = new GameEngine();
@@ -29,12 +38,54 @@ function App() {
     setGameState(engine.getState());
     lastTime.current = performance.now();
 
+    multiplayerManager.onStateUpdate((state) => {
+      if (gameEngineRef.current) {
+        gameEngineRef.current.applyMultiplayerState(state, multiplayerManager.getPeerId());
+      }
+    });
+
+    multiplayerManager.onPlayerInput((input) => {
+      if (gameEngineRef.current && multiplayerManager.getRole() === 'host') {
+        gameEngineRef.current.updateRemotePlayerFromInput(input.playerId, input);
+      }
+    });
+
+    multiplayerManager.onConnectionChange(() => {
+      setConnectionCount(multiplayerManager.getConnectionCount());
+    });
+
     const gameLoop = (time: number) => {
       if (!gameEngineRef.current) return;
       const deltaTime = (time - lastTime.current) / 1000;
       lastTime.current = time;
 
-      gameEngineRef.current.update(deltaTime);
+      const role = multiplayerManager.getRole();
+      
+      if (role === 'host') {
+        gameEngineRef.current.updateRemotePlayerPositions(deltaTime);
+        gameEngineRef.current.update(deltaTime);
+        
+        if (time - lastSyncTime.current > 50) {
+          const state = gameEngineRef.current.getMultiplayerState(multiplayerManager.getPeerId());
+          multiplayerManager.broadcastGameState(state);
+          lastSyncTime.current = time;
+        }
+      } else if (role === 'client') {
+        const keys = Array.from(gameEngineRef.current.getKeys());
+        const mousePos = gameEngineRef.current.getMousePos();
+        const mouseDown = gameEngineRef.current.getMouseDown();
+        
+        multiplayerManager.sendPlayerInput({
+          keys,
+          mousePos,
+          mouseDown,
+          timestamp: Date.now(),
+          playerId: multiplayerManager.getPeerId(),
+        });
+      } else {
+        gameEngineRef.current.update(deltaTime);
+      }
+
       setGameState({ ...gameEngineRef.current.getState() });
 
       animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -112,6 +163,19 @@ function App() {
     gameEngineRef.current?.useConsumable(consumableId);
   };
 
+  const handleCreateGame = async () => {
+    const id = await multiplayerManager.createGame();
+    setPeerId(id);
+    setMultiplayerRole('host');
+    return id;
+  };
+
+  const handleJoinGame = async (hostId: string) => {
+    await multiplayerManager.joinGame(hostId);
+    setPeerId(multiplayerManager.getPeerId());
+    setMultiplayerRole('client');
+  };
+
   if (!gameState || !gameEngineRef.current) {
     return <div className="w-screen h-screen bg-gray-900 flex items-center justify-center text-white">Initializing Subsystems...</div>;
   }
@@ -179,6 +243,16 @@ function App() {
                         <span>CRAFTING</span>
                     </div>
                     <span className="text-xs bg-slate-700 px-2 py-1 rounded">C</span>
+                </button>
+                <button
+                    onClick={() => setMultiplayerOpen(prev => !prev)}
+                    className="flex items-center justify-between w-full px-3 py-2 bg-slate-800/50 hover:bg-slate-700/70 rounded-md text-sm font-semibold transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-cyan-300" />
+                        <span>MULTIPLAYER</span>
+                    </div>
+                    {multiplayerRole !== 'none' && <span className="text-xs bg-green-700 px-2 py-1 rounded">{connectionCount + 1}P</span>}
                 </button>
                 <button
                     onClick={() => setAdminOpen(prev => !prev)}
@@ -405,6 +479,17 @@ function App() {
         weaponCount={gameState.player.equippedWeapons.length}
         isVisible={touchControlsVisible}
         onToggleVisibility={() => setTouchControlsVisible(!touchControlsVisible)}
+      />
+
+      <ConnectionMenu
+        isOpen={isMultiplayerOpen}
+        onClose={() => setMultiplayerOpen(false)}
+        onCreateGame={handleCreateGame}
+        onJoinGame={handleJoinGame}
+        isConnected={multiplayerRole !== 'none'}
+        connectionCount={connectionCount}
+        peerId={peerId}
+        role={multiplayerRole}
       />
     </div>
   );

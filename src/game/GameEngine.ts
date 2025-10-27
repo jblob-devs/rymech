@@ -149,6 +149,7 @@ export class GameEngine {
 
     return {
       player,
+      remotePlayers: [],
       enemies: [],
       projectiles: [],
       particles: [],
@@ -2946,5 +2947,170 @@ export class GameEngine {
     const weaponCrate = this.crateSystem.generateWeaponCrate();
     this.spawnWeaponDrop(spawnPos, weaponCrate.weapon, weaponCrate.perks);
     this.createParticles(spawnPos, 40, '#fbbf24', 0.8);
+  }
+
+  getMultiplayerState(hostPeerId: string): Partial<GameState> {
+    const allPlayers: import('../types/game').RemotePlayer[] = [
+      {
+        id: 'host',
+        peerId: hostPeerId,
+        player: this.gameState.player,
+        lastUpdate: Date.now(),
+      },
+      ...this.gameState.remotePlayers,
+    ];
+
+    return {
+      remotePlayers: allPlayers,
+      enemies: this.gameState.enemies,
+      projectiles: this.gameState.projectiles,
+      particles: this.gameState.particles,
+      currencyDrops: this.gameState.currencyDrops,
+      resourceDrops: this.gameState.resourceDrops,
+      chests: this.chests,
+      weaponDrops: this.gameState.weaponDrops,
+      score: this.gameState.score,
+      currentBiomeName: this.gameState.currentBiomeName,
+    };
+  }
+
+  applyMultiplayerState(state: Partial<GameState>, localPeerId: string): void {
+    if (state.remotePlayers) {
+      const localPlayerData = state.remotePlayers.find(rp => rp.peerId === localPeerId);
+      if (localPlayerData) {
+        const playerId = this.gameState.player.id;
+        this.gameState.player = {
+          ...localPlayerData.player,
+          id: playerId,
+        };
+      }
+      
+      this.gameState.remotePlayers = state.remotePlayers.filter(rp => rp.peerId !== localPeerId);
+    }
+    
+    if (state.enemies) this.gameState.enemies = state.enemies;
+    if (state.projectiles) this.gameState.projectiles = state.projectiles;
+    if (state.particles) this.gameState.particles = state.particles;
+    if (state.currencyDrops) this.gameState.currencyDrops = state.currencyDrops;
+    if (state.resourceDrops) this.gameState.resourceDrops = state.resourceDrops;
+    if (state.chests) this.chests = state.chests;
+    if (state.weaponDrops) this.gameState.weaponDrops = state.weaponDrops;
+    if (state.score !== undefined) this.gameState.score = state.score;
+    if (state.currentBiomeName) this.gameState.currentBiomeName = state.currentBiomeName;
+  }
+
+  updateRemotePlayers(remotePlayers: import('../types/game').RemotePlayer[]): void {
+    this.gameState.remotePlayers = remotePlayers;
+  }
+
+  updateRemotePlayerFromInput(playerId: string, input: import('./MultiplayerManager').PlayerInput): void {
+    let remotePlayer = this.gameState.remotePlayers.find(rp => rp.peerId === playerId);
+    
+    if (!remotePlayer) {
+      remotePlayer = {
+        id: `remote_${playerId}`,
+        peerId: playerId,
+        player: this.createRemotePlayer(playerId),
+        lastUpdate: Date.now(),
+      };
+      this.gameState.remotePlayers.push(remotePlayer);
+    }
+
+    const keys = new Set(input.keys);
+    const player = remotePlayer.player;
+    
+    const moveDir = createVector();
+    if (keys.has('w') || keys.has('arrowup')) moveDir.y -= 1;
+    if (keys.has('s') || keys.has('arrowdown')) moveDir.y += 1;
+    if (keys.has('a') || keys.has('arrowleft')) moveDir.x -= 1;
+    if (keys.has('d') || keys.has('arrowright')) moveDir.x += 1;
+    
+    if (moveDir.x !== 0 || moveDir.y !== 0) {
+      const normalized = vectorNormalize(moveDir);
+      player.velocity = vectorScale(normalized, player.speed);
+    } else {
+      player.velocity = createVector();
+    }
+
+    if (input.mousePos) {
+      const dx = input.mousePos.x - player.position.x;
+      const dy = input.mousePos.y - player.position.y;
+      player.rotation = Math.atan2(dy, dx);
+    }
+
+    remotePlayer.lastUpdate = Date.now();
+  }
+
+  private createRemotePlayer(playerId: string): import('../types/game').Player {
+    return {
+      id: `remote_${playerId}`,
+      position: createVector(CANVAS_WIDTH / 2 + Math.random() * 200 - 100, CANVAS_HEIGHT / 2 + Math.random() * 200 - 100),
+      velocity: createVector(),
+      size: PLAYER_SIZE,
+      health: PLAYER_MAX_HEALTH,
+      maxHealth: PLAYER_MAX_HEALTH,
+      rotation: 0,
+      speed: PLAYER_BASE_SPEED,
+      dashCooldown: PLAYER_DASH_COOLDOWN,
+      dashDuration: PLAYER_DASH_DURATION,
+      isDashing: false,
+      currency: 0,
+      equippedWeapons: [],
+      activeWeaponIndex: 0,
+      portalCooldown: 0,
+      isGrappling: false,
+      grappleProgress: 0,
+      isGliding: false,
+      resources: {
+        energy: 0,
+        coreDust: 0,
+        flux: 0,
+        geoShards: 0,
+        alloyFragments: 0,
+        singularityCore: 0,
+        cryoKelp: 0,
+        obsidianHeart: 0,
+        gloomRoot: 0,
+        resonantCrystal: 0,
+        voidEssence: 0,
+        bioluminescentPearl: 0,
+        sunpetalBloom: 0,
+        aetheriumShard: 0,
+        gravitonEssence: 0,
+        voidCore: 0,
+        crateKey: 0,
+      },
+      consumables: [],
+    };
+  }
+
+  updateRemotePlayerPositions(deltaTime: number): void {
+    this.gameState.remotePlayers.forEach(remotePlayer => {
+      const player = remotePlayer.player;
+      player.position = vectorAdd(player.position, vectorScale(player.velocity, deltaTime));
+      
+      const obstacles = this.getObstacles();
+      obstacles.forEach(obstacle => {
+        if (checkEntityObstacleCollision(player, obstacle)) {
+          resolveEntityObstacleCollision(player, obstacle);
+        }
+      });
+    });
+  }
+
+  removeRemotePlayer(playerId: string): void {
+    this.gameState.remotePlayers = this.gameState.remotePlayers.filter(rp => rp.peerId !== playerId);
+  }
+
+  getKeys(): Set<string> {
+    return this.keys;
+  }
+
+  getMousePos(): import('../types/game').Vector2 {
+    return this.mousePos;
+  }
+
+  getMouseDown(): boolean {
+    return this.mouseDown;
   }
 }

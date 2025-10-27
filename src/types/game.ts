@@ -298,8 +298,16 @@ export interface CraftingRecipe {
   patternDescription?: string;
 }
 
+export interface RemotePlayer {
+  id: string;
+  peerId: string;
+  player: Player;
+  lastUpdate: number;
+}
+
 export interface GameState {
   player: Player;
+  remotePlayers: RemotePlayer[];
   enemies: Enemy[];
   projectiles: Projectile[];
   particles: Particle[];
