@@ -1,0 +1,518 @@
+import { useState, useEffect, useRef } from 'react';
+import GameCanvas from './components/GameCanvas';
+import HUD from './components/HUD';
+import { GameEngine } from './game/GameEngine';
+import { GameState, Weapon } from './types/game';
+import { X, Archive, ShoppingCart, FlaskConical } from 'lucide-react';
+import Minimap from './components/Minimap';
+import CraftingMenu from './components/CraftingMenu';
+import TouchControls from './components/TouchControls';
+
+function App() {
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const gameEngineRef = useRef<GameEngine | null>(null);
+  const animationFrameId = useRef<number>();
+  const lastTime = useRef<number>(0);
+
+  const [isInventoryOpen, setInventoryOpen] = useState(false);
+  const [isCraftingOpen, setCraftingOpen] = useState(false);
+  const [isAdminOpen, setAdminOpen] = useState(false);
+  const [isAdminMode, setAdminMode] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [touchControlsVisible, setTouchControlsVisible] = useState(false);
+  const touchMoveRef = useRef({ x: 0, y: 0 });
+  const touchShootRef = useRef({ x: 0, y: 0, active: false });
+
+  useEffect(() => {
+    const engine = new GameEngine();
+    gameEngineRef.current = engine;
+    setGameState(engine.getState());
+    lastTime.current = performance.now();
+
+    const gameLoop = (time: number) => {
+      if (!gameEngineRef.current) return;
+      const deltaTime = (time - lastTime.current) / 1000;
+      lastTime.current = time;
+
+      gameEngineRef.current.update(deltaTime);
+      setGameState({ ...gameEngineRef.current.getState() });
+
+      animationFrameId.current = requestAnimationFrame(gameLoop);
+    };
+
+    animationFrameId.current = requestAnimationFrame(gameLoop);
+
+    engine.setTouchInput(touchMoveRef, touchShootRef);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!gameEngineRef.current) return;
+      const key = e.key.toLowerCase();
+
+      if (key === 'i') {
+        setInventoryOpen(prev => !prev);
+        gameEngineRef.current.togglePause();
+        return;
+      }
+      if (key === 'c') {
+        setCraftingOpen(prev => !prev);
+        gameEngineRef.current.togglePause();
+        return;
+      }
+      if (key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        gameEngineRef.current.dash();
+      }
+      if (key >= '1' && key <= '9') {
+        gameEngineRef.current.switchWeapon(parseInt(key) - 1);
+      }
+      gameEngineRef.current.setKeys(prev => new Set(prev).add(key));
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!gameEngineRef.current) return;
+      const key = e.key.toLowerCase();
+      gameEngineRef.current.setKeys(prev => {
+        const newKeys = new Set(prev);
+        newKeys.delete(key);
+        return newKeys;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleReset = () => {
+    gameEngineRef.current?.reset();
+    setInventoryOpen(false);
+    setCraftingOpen(false);
+  };
+
+  const handleEquip = (weaponId: string) => {
+    gameEngineRef.current?.equipWeapon(weaponId);
+  };
+
+  const handleUnequip = (weaponId: string) => {
+    gameEngineRef.current?.unequipWeapon(weaponId);
+  };
+
+  const handleDelete = (weaponId: string) => {
+    gameEngineRef.current?.deleteWeapon(weaponId);
+  };
+
+  const handleUseConsumable = (consumableId: string) => {
+    gameEngineRef.current?.useConsumable(consumableId);
+  };
+
+  if (!gameState || !gameEngineRef.current) {
+    return <div className="w-screen h-screen bg-gray-900 flex items-center justify-center text-white">Initializing Subsystems...</div>;
+  }
+
+  const inventory = gameEngineRef.current.getInventory();
+  const allInventoryWeapons = inventory.getWeapons();
+  const equippedWeapons = gameState.player.equippedWeapons;
+  const equippedWeaponIds = new Set(equippedWeapons.map(w => w.id));
+  const stowedWeapons = allInventoryWeapons.filter(invW => !equippedWeaponIds.has(invW.weapon.id));
+
+  return (
+    <div className="relative w-screen h-screen bg-gray-900 flex items-center justify-center text-white overflow-hidden" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+      <GameCanvas
+        gameState={gameState}
+        camera={gameEngineRef.current.getCamera()}
+        obstacles={gameEngineRef.current.getObstacles()}
+        resourceNodes={gameEngineRef.current.getResourceNodes()}
+        portals={gameEngineRef.current.getPortals()}
+        extractionPoints={gameEngineRef.current.getExtractionPoints()}
+        chests={gameEngineRef.current.getChests()}
+        biomeFeatures={gameEngineRef.current.getBiomeFeatures()}
+        gameEngineRef={gameEngineRef}
+      />
+      <HUD
+        gameState={gameState}
+        interactionText={
+          gameEngineRef.current?.getActiveOminousTendril()?.canInteract
+            ? 'Press [F] to Awaken the Void Subdivider'
+            : undefined
+        }
+      />
+
+      <div className="absolute top-4 right-4 flex flex-col items-end space-y-4 z-10">
+        <Minimap
+          gameState={gameState}
+          chests={gameEngineRef.current.getChests()}
+          extractionPoints={gameEngineRef.current.getExtractionPoints()}
+          portals={gameEngineRef.current.getPortals()}
+        />
+        <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 shadow-lg w-64">
+            <h2 className="text-xs font-bold text-slate-300 mb-2">SYSTEMS</h2>
+            <div className="flex flex-col space-y-2">
+                <button
+                    onClick={() => {
+                        setInventoryOpen(prev => !prev);
+                        gameEngineRef.current?.togglePause();
+                    }}
+                    className="flex items-center justify-between w-full px-3 py-2 bg-slate-800/50 hover:bg-slate-700/70 rounded-md text-sm font-semibold transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <Archive className="w-4 h-4 text-cyan-300" />
+                        <span>INVENTORY</span>
+                    </div>
+                    <span className="text-xs bg-slate-700 px-2 py-1 rounded">I</span>
+                </button>
+                <button
+                    onClick={() => {
+                        setCraftingOpen(prev => !prev);
+                        gameEngineRef.current?.togglePause();
+                    }}
+                    className="flex items-center justify-between w-full px-3 py-2 bg-slate-800/50 hover:bg-slate-700/70 rounded-md text-sm font-semibold transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <FlaskConical className="w-4 h-4 text-cyan-300" />
+                        <span>CRAFTING</span>
+                    </div>
+                    <span className="text-xs bg-slate-700 px-2 py-1 rounded">C</span>
+                </button>
+                <button
+                    onClick={() => setAdminOpen(prev => !prev)}
+                    className="flex items-center justify-between w-full px-3 py-2 bg-slate-800/50 hover:bg-slate-700/70 rounded-md text-sm font-semibold transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <ShoppingCart className="w-4 h-4 text-cyan-300" />
+                        <span>ADMIN</span>
+                    </div>
+                    {isAdminMode && <span className="text-xs bg-green-700 px-2 py-1 rounded">ACTIVE</span>}
+                </button>
+            </div>
+        </div>
+      </div>
+
+      {gameState.isGameOver && (
+        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+          <h1 className="text-6xl font-bold text-red-500 mb-4">SYSTEM FAILURE</h1>
+          <p className="text-xl mb-8">Final Score: {gameState.score}</p>
+          <button
+            onClick={handleReset}
+            className="px-6 py-3 bg-cyan-500 text-black font-bold rounded-lg shadow-lg hover:bg-cyan-400 transition-colors"
+          >
+            REINITIALIZE
+          </button>
+        </div>
+      )}
+
+      {isInventoryOpen && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-40 p-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>          <button
+              onClick={() => {
+                  setInventoryOpen(false);
+                  gameEngineRef.current?.togglePause();
+              }}
+              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors z-50"
+          >
+              <X size={28} />
+          </button>
+          <h1 className="text-4xl font-bold text-cyan-300 mb-6 tracking-wide">INVENTORY</h1>
+          <div className="w-full max-w-6xl h-[80vh] grid grid-cols-4 gap-6">
+            <div className="col-span-1 bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 overflow-y-auto">
+              <h2 className="text-2xl font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2">EQUIPPED</h2>
+              <div className="space-y-3">
+                {equippedWeapons.map(w => (
+                  <WeaponCard key={w.id} weapon={w} onAction={handleUnequip} actionLabel="Unequip" />
+                ))}
+                {equippedWeapons.length < inventory.getMaxEquipped() && Array.from({ length: inventory.getMaxEquipped() - equippedWeapons.length }).map((_, i) => (
+                  <div key={i} className="h-24 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center text-slate-600">
+                    EMPTY SLOT
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 pt-4 border-t border-slate-700">
+                <h2 className="text-xl font-semibold text-slate-300 mb-3">RESOURCES</h2>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { name: 'Energy', value: Math.floor(gameState.player.resources.energy), color: '#60a5fa' },
+                    { name: 'Core Dust', value: Math.floor(gameState.player.resources.coreDust), color: '#a78bfa' },
+                    { name: 'Flux', value: Math.floor(gameState.player.resources.flux), color: '#c084fc' },
+                    { name: 'Geo Shards', value: Math.floor(gameState.player.resources.geoShards), color: '#22d3ee' },
+                    { name: 'Alloy Fragments', value: Math.floor(gameState.player.resources.alloyFragments), color: '#94a3b8' },
+                    { name: 'Singularity Core', value: Math.floor(gameState.player.resources.singularityCore), color: '#fbbf24' },
+                    { name: 'Cryo Kelp', value: Math.floor(gameState.player.resources.cryoKelp), color: '#7dd3fc' },
+                    { name: 'Obsidian Heart', value: Math.floor(gameState.player.resources.obsidianHeart), color: '#fb923c' },
+                    { name: 'Gloom Root', value: Math.floor(gameState.player.resources.gloomRoot), color: '#a3e635' },
+                    { name: 'Resonant Crystal', value: Math.floor(gameState.player.resources.resonantCrystal), color: '#22d3ee' },
+                    { name: 'Void Essence', value: Math.floor(gameState.player.resources.voidEssence), color: '#c084fc' },
+                    { name: 'Bioluminescent Pearl', value: Math.floor(gameState.player.resources.bioluminescentPearl), color: '#5eead4' },
+                    { name: 'Sunpetal Bloom', value: Math.floor(gameState.player.resources.sunpetalBloom), color: '#fde047' },
+                    { name: 'Aetherium Shard', value: Math.floor(gameState.player.resources.aetheriumShard), color: '#a5b4fc' },
+                  ].filter(r => r.value > 0).map(resource => (
+                    <div key={resource.name} className="flex items-center justify-between">
+                      <span className="text-slate-400">{resource.name}</span>
+                      <span className="font-bold" style={{ color: resource.color }}>{resource.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="col-span-3 bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 overflow-y-auto">
+              <h2 className="text-2xl font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2">STOWED</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {stowedWeapons.map(invW => (
+                  <WeaponCard key={invW.weapon.id} weapon={invW.weapon} onAction={inventory.canEquipMore() ? handleEquip : handleDelete} actionLabel={inventory.canEquipMore() ? "Equip" : "Delete"} />
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-slate-400 text-sm">Press 'I' to close</p>
+        </div>
+      )}
+
+      {isAdminOpen && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-40 p-8">
+          <button
+            onClick={() => setAdminOpen(false)}
+            className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors z-50"
+          >
+            <X size={28} />
+          </button>
+          <div className="bg-slate-900/90 border-2 border-red-500/50 rounded-lg p-8 max-w-md w-full">
+            <h1 className="text-3xl font-bold text-red-400 mb-6 tracking-wide text-center">ADMIN PANEL</h1>
+
+            {!isAdminMode ? (
+              <div>
+                <p className="text-slate-300 mb-4">Enter admin password:</p>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && adminPassword === 'Windshark88affirm!') {
+                      setAdminMode(true);
+                      setAdminPassword('');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded text-white mb-4"
+                  placeholder="Password"
+                />
+                <button
+                  onClick={() => {
+                    if (adminPassword === 'Windshark88affirm!') {
+                      setAdminMode(true);
+                      setAdminPassword('');
+                    } else {
+                      alert('Incorrect password');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-bold text-white transition-colors"
+                >
+                  UNLOCK
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <span className="text-green-400 font-bold">ADMIN MODE ACTIVE</span>
+                </div>
+
+                <div>
+                  <h3 className="text-slate-300 font-semibold mb-2">Spawn Enemies</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminEnemy('grunt')}
+                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+                    >
+                      Grunt
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminEnemy('tank')}
+                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+                    >
+                      Tank
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminEnemy('speedy')}
+                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+                    >
+                      Speedy
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminEnemy('elite')}
+                      className="px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded text-sm transition-colors"
+                    >
+                      Elite
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-slate-300 font-semibold mb-2">Spawn Weapons</h3>
+                  <button
+                    onClick={() => gameEngineRef.current?.spawnAdminWeapon()}
+                    className="w-full px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded text-sm transition-colors"
+                  >
+                    Spawn Random Weapon Crate
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setAdminMode(false)}
+                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-bold text-white transition-colors"
+                >
+                  LOCK ADMIN MODE
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <CraftingMenu
+        isOpen={isCraftingOpen}
+        onClose={() => {
+          setCraftingOpen(false);
+          gameEngineRef.current?.togglePause();
+        }}
+        player={gameState.player}
+        craftingSystem={gameEngineRef.current.getCraftingSystem()}
+        onUseConsumable={handleUseConsumable}
+      />
+
+      <TouchControls
+        onMove={(x, y) => {
+          touchMoveRef.current = { x, y };
+        }}
+        onShoot={(x, y, active) => {
+          touchShootRef.current = { x, y, active };
+        }}
+        onDash={() => gameEngineRef.current?.dash()}
+        onInteract={() => {
+          if (gameEngineRef.current) {
+            gameEngineRef.current.setKeys(prev => new Set(prev).add('f'));
+            setTimeout(() => {
+              gameEngineRef.current?.setKeys(prev => {
+                const newKeys = new Set(prev);
+                newKeys.delete('f');
+                return newKeys;
+              });
+            }, 100);
+          }
+        }}
+        onWeaponSwitch={(index) => gameEngineRef.current?.switchWeapon(index)}
+        weaponCount={gameState.player.equippedWeapons.length}
+        isVisible={touchControlsVisible}
+        onToggleVisibility={() => setTouchControlsVisible(!touchControlsVisible)}
+      />
+    </div>
+  );
+}
+
+interface WeaponCardProps {
+  weapon: Weapon;
+  onAction: (id: string) => void;
+  actionLabel: string;
+}
+
+const WeaponCard = ({ weapon, onAction, actionLabel }: WeaponCardProps) => {
+  const [hoveredPerk, setHoveredPerk] = useState<any>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'common': return '#9ca3af';
+      case 'uncommon': return '#10b981';
+      case 'rare': return '#3b82f6';
+      case 'epic': return '#a855f7';
+      case 'legendary': return '#f59e0b';
+      default: return '#6b7280';
+    }
+  };
+
+  const handlePerkHover = (perk: any, e: React.MouseEvent) => {
+    setHoveredPerk(perk);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
+  };
+
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex flex-col justify-between relative">
+      <div>
+        <div className="flex justify-between items-start">
+          <h3 className="font-semibold text-base" style={{ color: weapon.color }}>{weapon.name}</h3>
+          <span className="text-xs bg-slate-700 px-2 py-1 rounded font-medium">{weapon.type}</span>
+        </div>
+        <p className="text-xs text-slate-400 mb-2">{weapon.description}</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-3">
+          <p><span className="text-slate-400">Damage:</span> <span className="font-medium">{weapon.damage.toFixed(1)}</span></p>
+          <p><span className="text-slate-400">Fire Rate:</span> <span className="font-medium">{(1 / weapon.fireRate).toFixed(2)}/s</span></p>
+          <p><span className="text-slate-400">Projectiles:</span> <span className="font-medium">{weapon.projectileCount}</span></p>
+          <p><span className="text-slate-400">Speed:</span> <span className="font-medium">{weapon.projectileSpeed.toFixed(1)}</span></p>
+        </div>
+        <div>
+          <h4 className="text-xs font-semibold text-slate-300 mb-1.5">Perks:</h4>
+          <div className="flex flex-wrap gap-1.5">
+            {weapon.perks && weapon.perks.length > 0 ? (
+              weapon.perks.map((perk: any, idx: number) => (
+                <span
+                  key={perk.id || idx}
+                  className="text-xs px-2 py-1 rounded font-medium cursor-help"
+                  style={{
+                    backgroundColor: `${getRarityColor(perk.rarity)}20`,
+                    color: getRarityColor(perk.rarity),
+                    border: `1px solid ${getRarityColor(perk.rarity)}50`
+                  }}
+                  onMouseEnter={(e) => handlePerkHover(perk, e)}
+                  onMouseLeave={() => setHoveredPerk(null)}
+                >
+                  {perk.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-slate-500 italic">None</span>
+            )}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => onAction(weapon.id)}
+        className="mt-3 w-full text-center py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-sm font-semibold transition-colors"
+      >
+        {actionLabel}
+      </button>
+      {hoveredPerk && (
+        <div
+          className="fixed z-[100] bg-slate-900 border-2 border-cyan-500/50 rounded-lg p-3 shadow-2xl max-w-xs pointer-events-none"
+          style={{
+            left: `${tooltipPos.x}px`,
+            top: `${tooltipPos.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="text-sm font-bold"
+              style={{ color: getRarityColor(hoveredPerk.rarity) }}
+            >
+              {hoveredPerk.name}
+            </span>
+            <span
+              className="text-xs uppercase px-2 py-0.5 rounded"
+              style={{
+                backgroundColor: `${getRarityColor(hoveredPerk.rarity)}20`,
+                color: getRarityColor(hoveredPerk.rarity),
+              }}
+            >
+              {hoveredPerk.rarity}
+            </span>
+          </div>
+          <p className="text-xs text-slate-300">{hoveredPerk.description}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
