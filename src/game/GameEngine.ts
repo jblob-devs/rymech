@@ -2970,6 +2970,10 @@ export class GameEngine {
       chests: this.chests,
       weaponDrops: this.gameState.weaponDrops,
       score: this.gameState.score,
+      isPaused: this.gameState.isPaused,
+      isGameOver: this.gameState.isGameOver,
+      resourcesCollected: this.gameState.resourcesCollected,
+      damageNumbers: this.gameState.damageNumbers,
       currentBiomeName: this.gameState.currentBiomeName,
     };
   }
@@ -2996,6 +3000,10 @@ export class GameEngine {
     if (state.chests) this.chests = state.chests;
     if (state.weaponDrops) this.gameState.weaponDrops = state.weaponDrops;
     if (state.score !== undefined) this.gameState.score = state.score;
+    if (state.isPaused !== undefined) this.gameState.isPaused = state.isPaused;
+    if (state.isGameOver !== undefined) this.gameState.isGameOver = state.isGameOver;
+    if (state.resourcesCollected !== undefined) this.gameState.resourcesCollected = state.resourcesCollected;
+    if (state.damageNumbers) this.gameState.damageNumbers = state.damageNumbers;
     if (state.currentBiomeName) this.gameState.currentBiomeName = state.currentBiomeName;
   }
 
