@@ -87,6 +87,8 @@ function App() {
         }
       } else if (role === 'client') {
         if (multiplayerManager.isWorldInitialized()) {
+          gameEngineRef.current.update(deltaTime);
+          
           const keys = Array.from(gameEngineRef.current.getKeys());
           const mousePos = gameEngineRef.current.getMousePos();
           const mouseDown = gameEngineRef.current.getMouseDown();
@@ -159,7 +161,26 @@ function App() {
   }, []);
 
   const handleReset = () => {
-    gameEngineRef.current?.reset();
+    if (!gameEngineRef.current) return;
+    
+    const role = multiplayerManager.getRole();
+    
+    if (role === 'client') {
+      const state = gameEngineRef.current.getState();
+      const hostPlayer = state.remotePlayers.find(rp => rp.id === 'host');
+      
+      if (hostPlayer) {
+        gameEngineRef.current.respawnPlayer(hostPlayer.player.position);
+      } else {
+        gameEngineRef.current.respawnPlayer();
+      }
+    } else if (role === 'host') {
+      const currentPos = gameEngineRef.current.getState().player.position;
+      gameEngineRef.current.respawnPlayer(currentPos);
+    } else {
+      gameEngineRef.current.reset();
+    }
+    
     setInventoryOpen(false);
     setCraftingOpen(false);
   };

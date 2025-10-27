@@ -2897,6 +2897,24 @@ export class GameEngine {
     this.loadChunksAroundPlayer();
   }
 
+  respawnPlayer(spawnPosition?: { x: number; y: number }): void {
+    this.gameState.player.health = this.gameState.player.maxHealth;
+    this.gameState.player.isDashing = false;
+    this.gameState.player.velocity = createVector();
+    this.gameState.isGameOver = false;
+    
+    if (spawnPosition) {
+      const offsetX = (Math.random() - 0.5) * 100;
+      const offsetY = (Math.random() - 0.5) * 100;
+      this.gameState.player.position = {
+        x: spawnPosition.x + offsetX,
+        y: spawnPosition.y + offsetY,
+      };
+    } else {
+      this.gameState.player.position = createVector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+    }
+  }
+
   spawnAdminEnemy(type: 'grunt' | 'tank' | 'speedy'): void {
     const player = this.gameState.player;
     const spawnDistance = 200;
@@ -2980,15 +2998,6 @@ export class GameEngine {
 
   applyMultiplayerState(state: Partial<GameState>, localPeerId: string): void {
     if (state.remotePlayers) {
-      const localPlayerData = state.remotePlayers.find(rp => rp.peerId === localPeerId);
-      if (localPlayerData) {
-        const playerId = this.gameState.player.id;
-        this.gameState.player = {
-          ...localPlayerData.player,
-          id: playerId,
-        };
-      }
-      
       this.gameState.remotePlayers = state.remotePlayers.filter(rp => rp.peerId !== localPeerId);
     }
     
@@ -2999,12 +3008,12 @@ export class GameEngine {
     if (state.resourceDrops) this.gameState.resourceDrops = state.resourceDrops;
     if (state.chests) this.chests = state.chests;
     if (state.weaponDrops) this.gameState.weaponDrops = state.weaponDrops;
-    if (state.score !== undefined) this.gameState.score = state.score;
-    if (state.isPaused !== undefined) this.gameState.isPaused = state.isPaused;
-    if (state.isGameOver !== undefined) this.gameState.isGameOver = state.isGameOver;
-    if (state.resourcesCollected !== undefined) this.gameState.resourcesCollected = state.resourcesCollected;
     if (state.damageNumbers) this.gameState.damageNumbers = state.damageNumbers;
     if (state.currentBiomeName) this.gameState.currentBiomeName = state.currentBiomeName;
+    
+    if (state.score !== undefined) this.gameState.score = state.score;
+    if (state.isPaused !== undefined) this.gameState.isPaused = state.isPaused;
+    if (state.resourcesCollected !== undefined) this.gameState.resourcesCollected = state.resourcesCollected;
   }
 
   updateRemotePlayers(remotePlayers: import('../types/game').RemotePlayer[]): void {
