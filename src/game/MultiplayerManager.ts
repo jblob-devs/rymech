@@ -33,11 +33,18 @@ export interface PlayerLeaveMessage {
   playerId: string;
 }
 
+export interface WorldInitMessage {
+  type: 'world_init';
+  worldData: any;
+  timestamp: number;
+}
+
 export type NetworkMessage = 
   | GameStateUpdate 
   | PlayerInputMessage 
   | PlayerJoinMessage 
-  | PlayerLeaveMessage;
+  | PlayerLeaveMessage
+  | WorldInitMessage;
 
 export class MultiplayerManager {
   private peer: Peer | null = null;
@@ -49,6 +56,9 @@ export class MultiplayerManager {
   private onStateUpdateCallback?: (state: Partial<GameState>) => void;
   private onPlayerInputCallback?: (input: PlayerInput) => void;
   private onConnectionChangeCallback?: () => void;
+  private onWorldInitCallback?: (worldData: any) => void;
+  private onClientConnectedCallback?: (peerId: string) => void;
+  private worldInitialized: boolean = false;
 
   constructor() {}
 
@@ -131,6 +141,10 @@ export class MultiplayerManager {
       if (this.onConnectionChangeCallback) {
         this.onConnectionChangeCallback();
       }
+
+      if (this.onClientConnectedCallback) {
+        this.onClientConnectedCallback(conn.peer);
+      }
     });
   }
 
@@ -157,7 +171,7 @@ export class MultiplayerManager {
   private handleMessage(message: NetworkMessage, fromPeerId: string) {
     switch (message.type) {
       case 'state_update':
-        if (this.role === 'client' && this.onStateUpdateCallback) {
+        if (this.role === 'client' && this.worldInitialized && this.onStateUpdateCallback) {
           this.onStateUpdateCallback(message.state);
         }
         break;
@@ -181,6 +195,14 @@ export class MultiplayerManager {
       
       case 'player_leave':
         this.remotePlayers.delete(fromPeerId);
+        break;
+      
+      case 'world_init':
+        if (this.role === 'client' && this.onWorldInitCallback) {
+          console.log('Received world initialization data');
+          this.onWorldInitCallback(message.worldData);
+          this.worldInitialized = true;
+        }
         break;
     }
   }
@@ -266,6 +288,50 @@ export class MultiplayerManager {
     this.onConnectionChangeCallback = callback;
   }
 
+  onWorldInit(callback: (worldData: any) => void) {
+    this.onWorldInitCallback = callback;
+  }
+
+  onClientConnected(callback: (peerId: string) => void) {
+    this.onClientConnectedCallback = callback;
+  }
+
+  sendWorldInit(worldData: any, toPeerId?: string) {
+    if (this.role !== 'host') return;
+
+    const message: WorldInitMessage = {
+      type: 'world_init',
+      worldData,
+      timestamp: Date.now(),
+    };
+
+    if (toPeerId) {
+      const conn = this.connections.get(toPeerId);
+      if (conn && conn.open) {
+        try {
+          console.log('Sending world init to', toPeerId);
+          conn.send(message);
+        } catch (err) {
+          console.error('Error sending world init to', toPeerId, err);
+        }
+      }
+    } else {
+      this.connections.forEach((conn) => {
+        if (conn.open) {
+          try {
+            conn.send(message);
+          } catch (err) {
+            console.error('Error sending world init to', conn.peer, err);
+          }
+        }
+      });
+    }
+  }
+
+  isWorldInitialized(): boolean {
+    return this.worldInitialized || this.role === 'host';
+  }
+
   disconnect() {
     this.connections.forEach((conn) => {
       conn.close();
@@ -280,5 +346,6 @@ export class MultiplayerManager {
     
     this.role = 'none';
     this.peerId = '';
+    this.worldInitialized = false;
   }
 }

@@ -54,6 +54,21 @@ function App() {
       setConnectionCount(multiplayerManager.getConnectionCount());
     });
 
+    multiplayerManager.onWorldInit((worldData) => {
+      if (gameEngineRef.current) {
+        console.log('Applying world state from host');
+        gameEngineRef.current.applyWorldState(worldData);
+      }
+    });
+
+    multiplayerManager.onClientConnected((peerId) => {
+      if (gameEngineRef.current && multiplayerManager.getRole() === 'host') {
+        console.log('Sending world state to new client:', peerId);
+        const worldState = gameEngineRef.current.getWorldState();
+        multiplayerManager.sendWorldInit(worldState, peerId);
+      }
+    });
+
     const gameLoop = (time: number) => {
       if (!gameEngineRef.current) return;
       const deltaTime = (time - lastTime.current) / 1000;
@@ -71,17 +86,19 @@ function App() {
           lastSyncTime.current = time;
         }
       } else if (role === 'client') {
-        const keys = Array.from(gameEngineRef.current.getKeys());
-        const mousePos = gameEngineRef.current.getMousePos();
-        const mouseDown = gameEngineRef.current.getMouseDown();
-        
-        multiplayerManager.sendPlayerInput({
-          keys,
-          mousePos,
-          mouseDown,
-          timestamp: Date.now(),
-          playerId: multiplayerManager.getPeerId(),
-        });
+        if (multiplayerManager.isWorldInitialized()) {
+          const keys = Array.from(gameEngineRef.current.getKeys());
+          const mousePos = gameEngineRef.current.getMousePos();
+          const mouseDown = gameEngineRef.current.getMouseDown();
+          
+          multiplayerManager.sendPlayerInput({
+            keys,
+            mousePos,
+            mouseDown,
+            timestamp: Date.now(),
+            playerId: multiplayerManager.getPeerId(),
+          });
+        }
       } else {
         gameEngineRef.current.update(deltaTime);
       }

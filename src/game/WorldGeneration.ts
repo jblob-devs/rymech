@@ -582,4 +582,45 @@ export class WorldGenerator {
     this.unlinkedPortal = null;
     this.killedEnemyIds.clear();
   }
+
+  public serializeWorldData(): any {
+    const chunksArray = Array.from(this.chunks.entries()).map(([key, chunk]) => ({
+      key,
+      chunk,
+    }));
+
+    const chunkBiomeMapArray = Array.from(this.chunkBiomeMap.entries()).map(([key, value]) => ({
+      key,
+      value,
+    }));
+
+    return {
+      seed: this.seed,
+      chunks: chunksArray,
+      chunkBiomeMap: chunkBiomeMapArray,
+      allPortals: this.allPortals,
+      unlinkedPortal: this.unlinkedPortal,
+      killedEnemyIds: Array.from(this.killedEnemyIds),
+    };
+  }
+
+  public hydrateWorldData(worldData: any): void {
+    this.seed = worldData.seed;
+    
+    this.featureGenerator = new BiomeFeatureGenerator(this.seed);
+    
+    this.chunks.clear();
+    worldData.chunks.forEach(({ key, chunk }: any) => {
+      this.chunks.set(key, chunk);
+    });
+
+    this.chunkBiomeMap.clear();
+    worldData.chunkBiomeMap.forEach(({ key, value }: any) => {
+      this.chunkBiomeMap.set(key, value);
+    });
+
+    this.allPortals = worldData.allPortals || [];
+    this.unlinkedPortal = worldData.unlinkedPortal || null;
+    this.killedEnemyIds = new Set(worldData.killedEnemyIds || []);
+  }
 }

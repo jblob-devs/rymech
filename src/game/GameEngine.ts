@@ -3121,4 +3121,27 @@ export class GameEngine {
   getMouseDown(): boolean {
     return this.mouseDown;
   }
+
+  getWorldState(): any {
+    const worldGeneratorData = this.worldGenerator.serializeWorldData();
+    
+    return {
+      worldGenerator: worldGeneratorData,
+      chests: this.chests,
+    };
+  }
+
+  applyWorldState(worldState: any): void {
+    if (worldState.worldGenerator) {
+      this.worldGenerator.hydrateWorldData(worldState.worldGenerator);
+      this.biomeManager.setWorldGenerator(this.worldGenerator);
+      this.featureInteraction = new BiomeFeatureInteraction();
+    }
+
+    if (worldState.chests) {
+      this.chests = worldState.chests;
+    }
+
+    this.loadChunksAroundPlayer();
+  }
 }
