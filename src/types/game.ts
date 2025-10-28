@@ -84,13 +84,26 @@ export type MinibossSubtype =
   | 'prism_guardian'
   | 'null_siren'
   | 'solstice_warden'
-  | 'rift_revenant';
+  | 'rift_revenant'
+  | 'aether_leviathan'
+  | 'bloom_warden';
 
 export type DroneType = 
   | 'assault_drone'
   | 'shield_drone'
   | 'repair_drone'
-  | 'scout_drone';
+  | 'scout_drone'
+  | 'plasma_drone'
+  | 'cryo_drone'
+  | 'explosive_drone'
+  | 'emp_drone'
+  | 'sniper_drone'
+  | 'laser_drone'
+  | 'swarm_drone'
+  | 'gravity_drone'
+  | 'medic_drone'
+  | 'tesla_drone'
+  | 'void_drone';
 
 export interface Drone extends Entity {
   droneType: DroneType;

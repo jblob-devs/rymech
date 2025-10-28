@@ -15,7 +15,7 @@ export class PlayerInventory {
   private drones: InventoryDrone[] = [];
   private consumables: Consumable[] = [];
   private readonly maxEquipped = 3;
-  private readonly maxEquippedDrones = 2;
+  private readonly maxEquippedDrones = 3;
 
   addWeapon(weapon: Weapon): void {
     this.weapons.push({

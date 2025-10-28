@@ -11,6 +11,7 @@ import { AnyBiomeFeature } from '../game/BiomeFeatures';
 import { BiomeFeatureRenderer } from '../game/BiomeFeatureRenderer';
 import { ResourceIconRenderer } from '../game/ResourceIconRenderer';
 import { renderVoidSubdivider } from '../game/VoidSubdividerRenderer';
+import { renderMiniboss } from '../game/MinibossRenderer';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -994,6 +995,11 @@ export default function GameCanvas({
   const drawEnemy = (ctx: CanvasRenderingContext2D, enemy: Enemy, camera: Camera) => {
     if (!camera.isInView(enemy.position, 500)) return;
 
+    if (enemy.type === 'miniboss') {
+      renderMiniboss(ctx, enemy, camera);
+      return;
+    }
+
     const screenPos = camera.worldToScreen(enemy.position);
 
     ctx.save();
@@ -1438,16 +1444,6 @@ export default function GameCanvas({
       ctx.textAlign = 'center';
       ctx.fillText('BOSS', screenPos.x, screenPos.y - enemy.size / 2 - 20);
       ctx.restore();
-    } else if (enemy.type === 'miniboss') {
-      ctx.save();
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = enemy.color;
-      ctx.fillText('MINIBOSS', screenPos.x, screenPos.y - enemy.size / 2 - 20);
-      ctx.restore();
-    }
   };
 
   const drawDrone = (ctx: CanvasRenderingContext2D, drone: Drone, camera: Camera) => {

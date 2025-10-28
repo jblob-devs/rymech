@@ -359,7 +359,7 @@ export class BiomeFeatureGenerator {
       [];
 
     const islandCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 5000) * 3) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 5000) * 2) + 1;
 
     for (let i = 0; i < islandCount; i++) {
       const x =
@@ -410,7 +410,7 @@ export class BiomeFeatureGenerator {
       const y =
         worldY + this.seededRandom(chunkX, chunkY, i * 110 + 5101) * chunkSize;
 
-      const tendrilCount = 4 + Math.floor(this.seededRandom(chunkX, chunkY, i * 110 + 5150) * 6);
+      const tendrilCount = 3 + Math.floor(this.seededRandom(chunkX, chunkY, i * 110 + 5150) * 4);
       const voidTendrils = [];
       for (let j = 0; j < tendrilCount; j++) {
         voidTendrils.push({
@@ -447,7 +447,7 @@ export class BiomeFeatureGenerator {
       const y = worldY + chunkSize / 2;
 
       const debrisCount =
-        15 + Math.floor(this.seededRandom(chunkX, chunkY, 5201) * 20);
+        8 + Math.floor(this.seededRandom(chunkX, chunkY, 5201) * 10);
       const orbitingDebris = [];
 
       for (let i = 0; i < debrisCount; i++) {
@@ -559,7 +559,7 @@ export class BiomeFeatureGenerator {
   ): GlacialSpireFeature[] {
     const features: GlacialSpireFeature[] = [];
     const spireCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 1000) * 3) + 1;
+      Math.floor(this.seededRandom(chunkX, chunkY, 1000) * 2) + 1;
 
     for (let i = 0; i < spireCount; i++) {
       const x =
@@ -567,7 +567,7 @@ export class BiomeFeatureGenerator {
       const y =
         worldY + this.seededRandom(chunkX, chunkY, i * 10 + 1001) * chunkSize;
 
-      const snowDriftCount = 3 + Math.floor(this.seededRandom(chunkX, chunkY, i * 10 + 1010) * 4);
+      const snowDriftCount = 2 + Math.floor(this.seededRandom(chunkX, chunkY, i * 10 + 1010) * 3);
       const snowDrift = [];
       for (let j = 0; j < snowDriftCount; j++) {
         const driftAngle = this.seededRandom(chunkX, chunkY, j * 15 + 1100) * Math.PI * 2;
@@ -618,7 +618,7 @@ export class BiomeFeatureGenerator {
   ): LavaPillarFeature[] {
     const features: LavaPillarFeature[] = [];
     const pillarCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 2000) * 4) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 2000) * 2) + 1;
 
     for (let i = 0; i < pillarCount; i++) {
       const x =
@@ -662,7 +662,7 @@ export class BiomeFeatureGenerator {
   ): ToxicPoolFeature[] {
     const features: ToxicPoolFeature[] = [];
     const poolCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 3000) * 3) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 3000) * 2) + 1;
 
     for (let i = 0; i < poolCount; i++) {
       const x =
@@ -673,7 +673,7 @@ export class BiomeFeatureGenerator {
         60 + this.seededRandom(chunkX, chunkY, i * 30 + 3002) * 100;
 
       const bubbleCount =
-        8 + Math.floor(this.seededRandom(chunkX, chunkY, i * 30 + 3003) * 12);
+        5 + Math.floor(this.seededRandom(chunkX, chunkY, i * 30 + 3003) * 6);
       const bubbles = [];
 
       for (let j = 0; j < bubbleCount; j++) {
@@ -730,7 +730,7 @@ export class BiomeFeatureGenerator {
   ): CrystalFormationFeature[] {
     const features: CrystalFormationFeature[] = [];
     const formationCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 4000) * 3) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 4000) * 2) + 1;
 
     for (let i = 0; i < formationCount; i++) {
       const x =
@@ -739,7 +739,7 @@ export class BiomeFeatureGenerator {
         worldY + this.seededRandom(chunkX, chunkY, i * 50 + 4001) * chunkSize;
 
       const crystalCount =
-        5 + Math.floor(this.seededRandom(chunkX, chunkY, i * 50 + 4002) * 8);
+        4 + Math.floor(this.seededRandom(chunkX, chunkY, i * 50 + 4002) * 5);
       const crystals = [];
 
       for (let j = 0; j < crystalCount; j++) {
@@ -787,7 +787,7 @@ export class BiomeFeatureGenerator {
   ): CoralReefFeature[] {
     const features: CoralReefFeature[] = [];
     const reefCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 7000) * 4) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 7000) * 2) + 1;
 
     for (let i = 0; i < reefCount; i++) {
       const x =
@@ -796,7 +796,7 @@ export class BiomeFeatureGenerator {
         worldY + this.seededRandom(chunkX, chunkY, i * 70 + 7001) * chunkSize;
 
       const branchCount =
-        6 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7002) * 10);
+        4 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7002) * 6);
       const branches = [];
 
       for (let j = 0; j < branchCount; j++) {
@@ -812,7 +812,7 @@ export class BiomeFeatureGenerator {
         });
       }
 
-      const waterPoolCount = 2 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7050) * 3);
+      const waterPoolCount = 1 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7050) * 2);
       const waterPools = [];
       for (let j = 0; j < waterPoolCount; j++) {
         const poolAngle = this.seededRandom(chunkX, chunkY, j * 85 + 7150) * Math.PI * 2;
@@ -826,7 +826,7 @@ export class BiomeFeatureGenerator {
         });
       }
 
-      const fishSchoolCount = 2 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7060) * 3);
+      const fishSchoolCount = 1 + Math.floor(this.seededRandom(chunkX, chunkY, i * 70 + 7060) * 2);
       const fishSchools = [];
       for (let j = 0; j < fishSchoolCount; j++) {
         const schoolAngle = this.seededRandom(chunkX, chunkY, j * 90 + 7200) * Math.PI * 2;
@@ -836,7 +836,7 @@ export class BiomeFeatureGenerator {
             Math.cos(schoolAngle) * schoolDist,
             Math.sin(schoolAngle) * schoolDist
           ),
-          count: 3 + Math.floor(this.seededRandom(chunkX, chunkY, j * 90 + 7202) * 5),
+          count: 3 + Math.floor(this.seededRandom(chunkX, chunkY, j * 90 + 7202) * 3),
           speed: 0.5 + this.seededRandom(chunkX, chunkY, j * 90 + 7203) * 1.0,
           angle: this.seededRandom(chunkX, chunkY, j * 90 + 7204) * Math.PI * 2,
         });
@@ -874,7 +874,7 @@ export class BiomeFeatureGenerator {
   ): BloomTreeFeature[] {
     const features: BloomTreeFeature[] = [];
     const treeCount =
-      Math.floor(this.seededRandom(chunkX, chunkY, 8000) * 3) + 2;
+      Math.floor(this.seededRandom(chunkX, chunkY, 8000) * 2) + 1;
 
     for (let i = 0; i < treeCount; i++) {
       const x =
@@ -882,7 +882,7 @@ export class BiomeFeatureGenerator {
       const y =
         worldY + this.seededRandom(chunkX, chunkY, i * 90 + 8001) * chunkSize;
 
-      const fallingPetalCount = 5 + Math.floor(this.seededRandom(chunkX, chunkY, i * 90 + 8010) * 8);
+      const fallingPetalCount = 3 + Math.floor(this.seededRandom(chunkX, chunkY, i * 90 + 8010) * 5);
       const fallingPetals = [];
       for (let j = 0; j < fallingPetalCount; j++) {
         const petalX = (this.seededRandom(chunkX, chunkY, j * 95 + 8100) - 0.5) * 200;

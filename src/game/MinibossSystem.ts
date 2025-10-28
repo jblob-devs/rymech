@@ -183,6 +183,7 @@ export const MINIBOSS_DEFINITIONS: Record<MinibossSubtype, MinibossDefinition> =
       weaponDropChance: 0.4
     },
     spawnCondition: (featureData, playerPosition) => {
+      if (!featureData || !featureData.position) return false;
       const dist = Math.sqrt(
         Math.pow(playerPosition.x - featureData.position.x, 2) +
         Math.pow(playerPosition.y - featureData.position.y, 2)
