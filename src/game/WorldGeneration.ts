@@ -317,10 +317,10 @@ export class WorldGenerator {
 
       if (resourceType === 'cryoKelp') {
         const glacialSpires = biomeFeatures.filter(f => f.type === 'glacial-spire');
-        if (glacialSpires.length > 0 && this.seededRandom(chunkX, chunkY, i * 100 + 5000) < 0.8) {
+        if (glacialSpires.length > 0 && this.seededRandom(chunkX, chunkY, i * 100 + 5000) < 0.95) {
           const spire = glacialSpires[Math.floor(this.seededRandom(chunkX, chunkY, i * 101 + 5001) * glacialSpires.length)];
           const angle = this.seededRandom(chunkX, chunkY, i * 102 + 5002) * Math.PI * 2;
-          const distance = 40 + this.seededRandom(chunkX, chunkY, i * 103 + 5003) * 80;
+          const distance = 30 + this.seededRandom(chunkX, chunkY, i * 103 + 5003) * 60;
           x = spire.position.x + Math.cos(angle) * distance;
           y = spire.position.y + Math.sin(angle) * distance;
           positioned = true;
@@ -367,10 +367,10 @@ export class WorldGenerator {
         }
       } else if (resourceType === 'bioluminescentPearl') {
         const coralReefs = biomeFeatures.filter(f => f.type === 'coral-reef');
-        if (coralReefs.length > 0 && this.seededRandom(chunkX, chunkY, i * 100 + 10000) < 0.85) {
+        if (coralReefs.length > 0 && this.seededRandom(chunkX, chunkY, i * 100 + 10000) < 0.95) {
           const reef = coralReefs[Math.floor(this.seededRandom(chunkX, chunkY, i * 101 + 10001) * coralReefs.length)];
           const angle = this.seededRandom(chunkX, chunkY, i * 102 + 10002) * Math.PI * 2;
-          const distance = 30 + this.seededRandom(chunkX, chunkY, i * 103 + 10003) * 60;
+          const distance = 20 + this.seededRandom(chunkX, chunkY, i * 103 + 10003) * 50;
           x = reef.position.x + Math.cos(angle) * distance;
           y = reef.position.y + Math.sin(angle) * distance;
           positioned = true;

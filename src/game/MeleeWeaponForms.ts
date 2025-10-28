@@ -5,6 +5,12 @@ export type ComboStrike = {
   swingAngleModifier: number;
   speedModifier: number;
   effectType?: 'none' | 'slam' | 'thrust' | 'spin' | 'wide';
+  playerMovement?: {
+    dashForward?: number;
+    dashBackward?: number;
+    dashLeft?: number;
+    dashRight?: number;
+  };
 };
 
 export type MeleeForm = {
@@ -88,7 +94,7 @@ export const MELEE_FORMS: Record<string, MeleeForm> = {
   heavy_form: {
     id: 'heavy_form',
     name: 'Heavy Form',
-    description: 'Powerful strikes: thrust, thrust, crushing slam',
+    description: 'Powerful strikes: thrust, thrust, crushing slam with forward push',
     rarity: 'rare',
     icon: 'hammer',
     comboPattern: [
@@ -99,6 +105,7 @@ export const MELEE_FORMS: Record<string, MeleeForm> = {
         swingAngleModifier: 0.5,
         speedModifier: 0.8,
         effectType: 'thrust',
+        playerMovement: { dashForward: 50 },
       },
       {
         name: 'Heavy Thrust',
@@ -107,6 +114,7 @@ export const MELEE_FORMS: Record<string, MeleeForm> = {
         swingAngleModifier: 0.5,
         speedModifier: 0.75,
         effectType: 'thrust',
+        playerMovement: { dashForward: 60 },
       },
       {
         name: 'Crushing Slam',
@@ -298,12 +306,34 @@ export const MELEE_FORMS: Record<string, MeleeForm> = {
   },
 };
 
-export function getFormForWeapon(weaponType: string): MeleeForm {
-  if (weaponType === 'void_blade') {
-    return MELEE_FORMS.void_form;
+export function getRandomMeleeForm(rarity?: 'common' | 'rare' | 'epic' | 'legendary'): MeleeForm {
+  const formArray = Object.values(MELEE_FORMS);
+  
+  if (rarity) {
+    const filteredForms = formArray.filter(f => f.rarity === rarity);
+    if (filteredForms.length > 0) {
+      return filteredForms[Math.floor(Math.random() * filteredForms.length)];
+    }
   }
   
-  return MELEE_FORMS.basic_form;
+  const rand = Math.random();
+  if (rand < 0.4) {
+    const commonForms = formArray.filter(f => f.rarity === 'common');
+    return commonForms[Math.floor(Math.random() * commonForms.length)] || MELEE_FORMS.basic_form;
+  } else if (rand < 0.7) {
+    const rareForms = formArray.filter(f => f.rarity === 'rare');
+    return rareForms[Math.floor(Math.random() * rareForms.length)] || MELEE_FORMS.rapid_form;
+  } else if (rand < 0.9) {
+    const epicForms = formArray.filter(f => f.rarity === 'epic');
+    return epicForms[Math.floor(Math.random() * epicForms.length)] || MELEE_FORMS.flowing_form;
+  } else {
+    const legendaryForms = formArray.filter(f => f.rarity === 'legendary');
+    return legendaryForms[Math.floor(Math.random() * legendaryForms.length)] || MELEE_FORMS.void_form;
+  }
+}
+
+export function getFormForWeapon(weaponType: string): MeleeForm {
+  return getRandomMeleeForm();
 }
 
 export function applyFormToMeleeStats(

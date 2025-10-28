@@ -37,54 +37,40 @@ export class MeleeWeaponRenderer {
       const currentSwingAngle = startAngle + swingAngle * swingProgress;
 
       this.drawSwipe(ctx, weapon, range, startAngle, currentSwingAngle, swingAngle, swingProgress);
-      this.drawSword(ctx, weapon, range, currentSwingAngle, swingProgress);
     } else {
-      this.drawSword(ctx, weapon, range, angle, 0);
+      this.drawCrosshair(ctx, weapon, range, angle);
     }
 
     ctx.restore();
   }
 
-  private drawSword(
+  private drawCrosshair(
     ctx: CanvasRenderingContext2D,
     weapon: Weapon,
     range: number,
-    angle: number,
-    swingProgress: number
+    angle: number
   ): void {
     ctx.save();
     ctx.rotate(angle);
 
-    const swordLength = range * 0.9;
-    const swordWidth = 8;
-    const handleLength = 15;
-    const bladeWidth = swordWidth * (1 + swingProgress * 0.3);
-
-    const gradient = ctx.createLinearGradient(handleLength, 0, swordLength, 0);
-    gradient.addColorStop(0, weapon.color);
-    gradient.addColorStop(0.5, this.lightenColor(weapon.color, 40));
-    gradient.addColorStop(1, this.lightenColor(weapon.color, 80));
-
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(0, -swordWidth / 2, handleLength, swordWidth);
+    ctx.strokeStyle = weapon.color + '80';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 3]);
 
     ctx.beginPath();
-    ctx.moveTo(handleLength, 0);
-    ctx.lineTo(swordLength - 10, -bladeWidth / 2);
-    ctx.lineTo(swordLength, 0);
-    ctx.lineTo(swordLength - 10, bladeWidth / 2);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    ctx.strokeStyle = this.lightenColor(weapon.color, 100);
-    ctx.lineWidth = 2;
+    ctx.arc(range * 0.7, 0, 8, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.shadowColor = weapon.color;
-    ctx.shadowBlur = 15 + swingProgress * 20;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(range * 0.7 - 12, 0);
+    ctx.lineTo(range * 0.7 - 4, 0);
+    ctx.moveTo(range * 0.7 + 4, 0);
+    ctx.lineTo(range * 0.7 + 12, 0);
+    ctx.moveTo(range * 0.7, -12);
+    ctx.lineTo(range * 0.7, -4);
+    ctx.moveTo(range * 0.7, 4);
+    ctx.lineTo(range * 0.7, 12);
     ctx.stroke();
 
     ctx.restore();
@@ -99,7 +85,7 @@ export class MeleeWeaponRenderer {
     totalSwingAngle: number,
     progress: number
   ): void {
-    const trailRadius = range * 0.85;
+    const trailRadius = range * 0.75;
 
     ctx.save();
     ctx.beginPath();
@@ -107,37 +93,35 @@ export class MeleeWeaponRenderer {
     
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, trailRadius);
     gradient.addColorStop(0, 'transparent');
-    gradient.addColorStop(0.7, weapon.color + '40');
-    gradient.addColorStop(1, weapon.color + '80');
+    gradient.addColorStop(0.8, weapon.color + '30');
+    gradient.addColorStop(1, weapon.color + '60');
     
     ctx.strokeStyle = gradient;
-    ctx.lineWidth = 20;
+    ctx.lineWidth = 6;
     ctx.lineCap = 'round';
     ctx.shadowColor = weapon.color;
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 15;
     ctx.stroke();
 
-    for (let i = 0; i < 3; i++) {
-      const offset = (i + 1) * 8;
-      const alpha = Math.floor((1 - i * 0.3) * progress * 128).toString(16).padStart(2, '0');
-      ctx.beginPath();
-      ctx.arc(0, 0, trailRadius - offset, startAngle, currentAngle, false);
-      ctx.strokeStyle = weapon.color + alpha;
-      ctx.lineWidth = 15 - i * 4;
-      ctx.stroke();
-    }
-
-    const steps = Math.ceil(totalSwingAngle * 10);
+    const steps = Math.ceil(totalSwingAngle * 15);
     for (let i = 0; i <= steps * progress; i++) {
       const a = startAngle + (totalSwingAngle * progress * (i / steps));
-      const particleAlpha = Math.floor((1 - i / steps) * 128).toString(16).padStart(2, '0');
+      const particleAlpha = Math.floor((1 - i / steps) * 180).toString(16).padStart(2, '0');
       const x = Math.cos(a) * trailRadius;
       const y = Math.sin(a) * trailRadius;
       
+      const size = 2 + Math.random() * 2;
       ctx.fillStyle = weapon.color + particleAlpha;
       ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
+      
+      if (Math.random() < 0.3) {
+        ctx.fillStyle = this.lightenColor(weapon.color, 60) + particleAlpha;
+        ctx.beginPath();
+        ctx.arc(x + (Math.random() - 0.5) * 10, y + (Math.random() - 0.5) * 10, size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     ctx.restore();

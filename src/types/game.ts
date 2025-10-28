@@ -110,6 +110,7 @@ export interface Projectile extends Entity {
   damage: number;
   color: string;
   owner: 'player' | 'enemy';
+  playerId?: string;
   lifetime: number;
   maxLifetime?: number;
   piercing: boolean;
@@ -332,4 +333,5 @@ export interface GameState {
   resourcesCollected: number;
   currentBiomeName: string;
   damageNumbers: DamageNumber[];
+  pvpEnabled: boolean;
 }

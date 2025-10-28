@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Copy, Check, X, Navigation } from 'lucide-react';
+import { Users, Copy, Check, X, Navigation, Sword } from 'lucide-react';
 import { RemotePlayer } from '../types/game';
 
 interface ConnectionMenuProps {
@@ -14,6 +14,8 @@ interface ConnectionMenuProps {
   remotePlayers?: RemotePlayer[];
   onTeleportToPlayer?: (peerId: string) => void;
   onTeleportPlayerToMe?: (peerId: string) => void;
+  pvpEnabled?: boolean;
+  onTogglePvP?: () => void;
 }
 
 export default function ConnectionMenu({
@@ -28,6 +30,8 @@ export default function ConnectionMenu({
   remotePlayers = [],
   onTeleportToPlayer,
   onTeleportPlayerToMe,
+  pvpEnabled = false,
+  onTogglePvP,
 }: ConnectionMenuProps) {
   const [joinId, setJoinId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -134,6 +138,32 @@ export default function ConnectionMenu({
                 className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-cyan-300 text-sm"
               />
             </div>
+
+            {role === 'host' && onTogglePvP && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sword className="w-4 h-4 text-red-400" />
+                    <span className="text-slate-300 text-sm font-medium">PvP Combat</span>
+                  </div>
+                  <button
+                    onClick={onTogglePvP}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      pvpEnabled ? 'bg-red-600' : 'bg-slate-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        pvpEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="text-slate-400 text-xs mt-2">
+                  {pvpEnabled ? 'Players can damage each other' : 'Players cannot damage each other'}
+                </p>
+              </div>
+            )}
 
             {role === 'host' && peerId && (
               <div className="bg-slate-800/50 border border-slate-700 rounded p-4">

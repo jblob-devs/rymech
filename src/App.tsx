@@ -536,6 +536,8 @@ function App() {
         remotePlayers={gameState.remotePlayers}
         onTeleportToPlayer={(targetPeerId) => gameEngineRef.current?.teleportToPlayer(targetPeerId)}
         onTeleportPlayerToMe={(targetPeerId) => gameEngineRef.current?.teleportRemotePlayerToMe(targetPeerId)}
+        pvpEnabled={gameState.pvpEnabled}
+        onTogglePvP={() => gameEngineRef.current?.togglePvP()}
       />
     </div>
   );

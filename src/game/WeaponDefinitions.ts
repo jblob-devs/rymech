@@ -241,7 +241,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 80,
     meleeStats: {
       range: 80,
-      swingDuration: 0.2,
+      swingDuration: 0.5,
       swingAngle: 90,
       comboCount: 3,
       comboDamageMultiplier: 1.5,
@@ -270,7 +270,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 85,
     meleeStats: {
       range: 85,
-      swingDuration: 0.15,
+      swingDuration: 0.375,
       swingAngle: 100,
       comboCount: 3,
       comboDamageMultiplier: 1.4,
@@ -299,7 +299,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 70,
     meleeStats: {
       range: 70,
-      swingDuration: 0.3,
+      swingDuration: 0.75,
       swingAngle: 80,
       comboCount: 3,
       comboDamageMultiplier: 2.0,
@@ -328,7 +328,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 95,
     meleeStats: {
       range: 95,
-      swingDuration: 0.22,
+      swingDuration: 0.55,
       swingAngle: 120,
       comboCount: 3,
       comboDamageMultiplier: 1.6,
@@ -357,7 +357,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 60,
     meleeStats: {
       range: 60,
-      swingDuration: 0.15,
+      swingDuration: 0.375,
       swingAngle: 60,
       comboCount: 3,
       comboDamageMultiplier: 2.0,
@@ -386,7 +386,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 75,
     meleeStats: {
       range: 75,
-      swingDuration: 0.25,
+      swingDuration: 0.625,
       swingAngle: 110,
       comboCount: 4,
       comboDamageMultiplier: 1.8,
@@ -415,7 +415,7 @@ export const WEAPON_DEFINITIONS: Record<
     maxRange: 72,
     meleeStats: {
       range: 72,
-      swingDuration: 0.2,
+      swingDuration: 0.5,
       swingAngle: 100,
       comboCount: 3,
       comboDamageMultiplier: 1.5,

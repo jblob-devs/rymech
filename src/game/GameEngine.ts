@@ -167,6 +167,7 @@ export class GameEngine {
       resourcesCollected: 0,
       currentBiomeName: 'Veridian Nexus',
       damageNumbers: [],
+      pvpEnabled: false,
     };
   }
 
@@ -2159,6 +2160,52 @@ export class GameEngine {
             }
           });
 
+          if (this.gameState.pvpEnabled) {
+            this.gameState.remotePlayers.forEach((remotePlayer) => {
+              if (projectile.playerId !== remotePlayer.player.id && checkCollision(projectile, remotePlayer.player) && !remotePlayer.player.isDashing) {
+                remotePlayer.player.health -= projectile.damage;
+                this.createDamageNumber(remotePlayer.player.position, projectile.damage, '#ff6600');
+                this.createParticles(remotePlayer.player.position, 8, '#ff0000', 0.4);
+                
+                if (projectile.explosive) {
+                  this.createExplosion(
+                    projectile.position,
+                    projectile.explosionRadius || 50,
+                    projectile.damage * 0.5
+                  );
+                  hit = true;
+                }
+                
+                if (!projectile.piercing && !projectile.explosive) {
+                  hit = true;
+                } else if (projectile.piercing && !projectile.explosive) {
+                  projectile.piercingCount--;
+                  if (projectile.piercingCount <= 0) hit = true;
+                }
+              }
+            });
+
+            if (projectile.playerId && projectile.playerId !== player.id && checkCollision(projectile, player) && !player.isDashing) {
+              player.health -= projectile.damage;
+              this.createDamageNumber(player.position, projectile.damage, '#ff6600');
+              this.createParticles(player.position, 8, '#ff0000', 0.4);
+              
+              if (projectile.explosive) {
+                this.createExplosion(
+                  projectile.position,
+                  projectile.explosionRadius || 50,
+                  projectile.damage * 0.5
+                );
+              }
+              
+              if (player.health <= 0) {
+                this.gameState.isGameOver = true;
+              }
+              
+              return false;
+            }
+          }
+
           return !hit;
         } else {
           if (checkCollision(projectile, player) && !player.isDashing) {
@@ -2943,6 +2990,18 @@ export class GameEngine {
 
   togglePause(): void {
     this.gameState.isPaused = !this.gameState.isPaused;
+  }
+
+  togglePvP(): void {
+    this.gameState.pvpEnabled = !this.gameState.pvpEnabled;
+  }
+
+  setPvP(enabled: boolean): void {
+    this.gameState.pvpEnabled = enabled;
+  }
+
+  isPvPEnabled(): boolean {
+    return this.gameState.pvpEnabled;
   }
 
 
