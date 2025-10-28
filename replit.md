@@ -19,12 +19,16 @@ MechaRyan is a top-down action survival game built with React, TypeScript, and V
 
 ## Key Features
 - Real-time game engine with canvas rendering
+- Multiplayer support with smooth position interpolation
 - Weapon system with perks and upgrades
+- Advanced melee combat system with visual rendering
+- Melee weapon Forms system (Rapid, Heavy, Flowing, Assassin, Berserker, Guardian, Void)
+- Projectile deflection mechanics for melee weapons
 - Crafting and inventory management
 - Multiple biomes with unique features
 - Wave-based enemy system
 - Admin mode for testing
-- Touch controls for mobile devices
+- Optimized touch controls for mobile devices
 - Resource gathering and trading
 
 ## Development
@@ -63,6 +67,15 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 28, 2025: Multiplayer and Melee Combat Expansion
+  - Fixed multiplayer position desync with smooth interpolation system
+  - Optimized touch controls with ref-based event handlers
+  - Added visual melee weapon rendering (sword models, swipe animations, particle trails)
+  - Implemented Forms system for melee combos (7 unique Forms)
+  - Added 6 new unique melee weapons (Crimson Scythe, Titan Hammer, Flowing Glaive, Shadow Daggers, Berserker Axe, Guardian Blade)
+  - Added 10 new melee weapon perks including legendary Projectile Deflection
+  - Implemented functional projectile deflection that reverses enemy projectiles during sword swings
+  
 - October 27, 2025: Initial Replit setup
   - Configured Vite for Replit environment (port 5000, host 0.0.0.0)
   - Updated .gitignore with standard Node.js patterns
