@@ -35,16 +35,20 @@ export interface Entity {
 export interface Player extends Entity {
   health: number;
   maxHealth: number;
+  shieldAbsorption?: number;
   speed: number;
   isDashing: boolean;
   dashCooldown: number;
   dashDuration: number;
   currency: number;
   equippedWeapons: Weapon[];
+  equippedDrones: DroneType[];
   activeWeaponIndex: number;
   portalCooldown?: number;
   isGrappling?: boolean;
   grappleTarget?: Vector2;
+  grappleTargetId?: string;
+  grappleTargetType?: 'enemy' | 'player' | 'obstacle';
   grappleProgress?: number;
   glideVelocity?: Vector2;
   isGliding?: boolean;
@@ -81,6 +85,32 @@ export type MinibossSubtype =
   | 'null_siren'
   | 'solstice_warden'
   | 'rift_revenant';
+
+export type DroneType = 
+  | 'assault_drone'
+  | 'shield_drone'
+  | 'repair_drone'
+  | 'scout_drone';
+
+export interface Drone extends Entity {
+  droneType: DroneType;
+  ownerId: string;
+  health: number;
+  maxHealth: number;
+  damage: number;
+  fireRate: number;
+  attackCooldown: number;
+  orbitRadius: number;
+  orbitAngle: number;
+  orbitSpeed: number;
+  targetId?: string;
+  color: string;
+  secondaryColor: string;
+  shieldActive?: boolean;
+  repairRate?: number;
+  lastRepairTime?: number;
+  detectionRadius?: number;
+}
 
 export interface Enemy extends Entity {
   type: 'grunt' | 'speedy' | 'tank' | 'sniper' | 'artillery' | 'burst' | 'dasher' | 'weaver' | 'laser' | 'boss' | 'miniboss' | 'orbiter' | 'fragmenter' | 'pulsar' | 'spiraler' | 'replicator' | 'vortex';
@@ -346,6 +376,7 @@ export interface GameState {
   player: Player;
   remotePlayers: RemotePlayer[];
   enemies: Enemy[];
+  drones: Drone[];
   projectiles: Projectile[];
   particles: Particle[];
   currencyDrops: CurrencyDrop[];

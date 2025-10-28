@@ -1,14 +1,21 @@
-import { Weapon, Consumable } from '../types/game';
+import { Weapon, Consumable, DroneType } from '../types/game';
 
 export interface InventoryWeapon {
   weapon: Weapon;
   equipped: boolean;
 }
 
+export interface InventoryDrone {
+  droneType: DroneType;
+  equipped: boolean;
+}
+
 export class PlayerInventory {
   private weapons: InventoryWeapon[] = [];
+  private drones: InventoryDrone[] = [];
   private consumables: Consumable[] = [];
   private readonly maxEquipped = 3;
+  private readonly maxEquippedDrones = 2;
 
   addWeapon(weapon: Weapon): void {
     this.weapons.push({
@@ -101,5 +108,66 @@ export class PlayerInventory {
 
   getConsumable(consumableId: string): Consumable | undefined {
     return this.consumables.find((c) => c.id === consumableId);
+  }
+
+  addDrone(droneType: DroneType): void {
+    const existingDrone = this.drones.find((d) => d.droneType === droneType);
+    if (!existingDrone) {
+      this.drones.push({
+        droneType,
+        equipped: false,
+      });
+    }
+  }
+
+  removeDrone(droneType: DroneType): void {
+    this.drones = this.drones.filter((d) => d.droneType !== droneType);
+  }
+
+  getDrones(): InventoryDrone[] {
+    return this.drones;
+  }
+
+  getEquippedDrones(): DroneType[] {
+    return this.drones
+      .filter((d) => d.equipped)
+      .map((d) => d.droneType);
+  }
+
+  equipDrone(droneType: DroneType): boolean {
+    const equippedCount = this.drones.filter((d) => d.equipped).length;
+
+    if (equippedCount >= this.maxEquippedDrones) {
+      return false;
+    }
+
+    const drone = this.drones.find((d) => d.droneType === droneType);
+    if (drone && !drone.equipped) {
+      drone.equipped = true;
+      return true;
+    }
+
+    return false;
+  }
+
+  unequipDrone(droneType: DroneType): void {
+    const drone = this.drones.find((d) => d.droneType === droneType);
+    if (drone) {
+      drone.equipped = false;
+    }
+  }
+
+  isDroneEquipped(droneType: DroneType): boolean {
+    const drone = this.drones.find((d) => d.droneType === droneType);
+    return drone?.equipped || false;
+  }
+
+  getMaxEquippedDrones(): number {
+    return this.maxEquippedDrones;
+  }
+
+  canEquipMoreDrones(): boolean {
+    const equippedCount = this.drones.filter((d) => d.equipped).length;
+    return equippedCount < this.maxEquippedDrones;
   }
 }

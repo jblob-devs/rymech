@@ -6,6 +6,7 @@ import {
   Weapon,
   Chest,
   WeaponDrop,
+  Drone,
 } from '../types/game';
 import {
   CANVAS_WIDTH,
@@ -58,6 +59,7 @@ import { MinibossSpawnManager } from './MinibossSpawnManager';
 import { MinibossUpdateSystem } from './MinibossUpdateSystem';
 import { MinibossLootSystem } from './MinibossLootSystem';
 import type { MinibossSubtype } from '../types/game';
+import { DroneSystem } from './DroneSystem';
 
 export class GameEngine {
   private gameState: GameState;
@@ -93,6 +95,7 @@ export class GameEngine {
   private minibossUpdateSystem: MinibossUpdateSystem;
   private minibossLootSystem: MinibossLootSystem;
   private minibossSpawnCheckTimer: number = 0;
+  private droneSystem: DroneSystem;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -110,6 +113,7 @@ export class GameEngine {
     this.minibossSpawnManager = new MinibossSpawnManager(this.minibossSystem);
     this.minibossUpdateSystem = new MinibossUpdateSystem();
     this.minibossLootSystem = new MinibossLootSystem();
+    this.droneSystem = new DroneSystem();
     this.gameState = this.createInitialState();
     this.biomeManager.setWorldGenerator(this.worldGenerator);
 
@@ -119,6 +123,7 @@ export class GameEngine {
       this.inventory.equipWeapon(weaponWithPerks.id);
     });
     this.syncEquippedWeapons();
+    this.syncDrones();
 
     this.loadChunksAroundPlayer();
   }
@@ -138,6 +143,7 @@ export class GameEngine {
       isDashing: false,
       currency: 0,
       equippedWeapons: [],
+      equippedDrones: [],
       activeWeaponIndex: 0,
       portalCooldown: 0,
       isGrappling: false,
@@ -169,6 +175,7 @@ export class GameEngine {
       player,
       remotePlayers: [],
       enemies: [],
+      drones: [],
       projectiles: [],
       particles: [],
       currencyDrops: [],
@@ -381,6 +388,7 @@ export class GameEngine {
     this.updateEnemies(dt);
     this.updateMinibosses(dt);
     this.checkMinibossSpawns(dt);
+    this.updateDrones(dt);
     this.updateVoidSubdividerBoss(dt);
     this.checkVoidSubdividerSpawn();
     this.modifierSystem.updateModifiers(
@@ -447,52 +455,89 @@ export class GameEngine {
   private updatePlayer(dt: number): void {
     const player = this.gameState.player;
 
-    if (player.isGrappling && player.grappleTarget) {
-      const toTarget = vectorSubtract(player.grappleTarget, player.position);
-      const distance = Math.sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
+    if (player.isGrappling) {
+      // Resolve the grapple target position based on target type
+      let currentTargetPosition: { x: number; y: number } | null = null;
 
-      const activeWeapon = player.equippedWeapons[player.activeWeaponIndex];
-      const pullSpeed = (activeWeapon?.grapplingStats?.pullSpeed || 10) * 0.4; // Slowed down to 40% of original
-      const slamDamage = activeWeapon?.grapplingStats?.slamDamage || 0;
-      const slamRadius = activeWeapon?.grapplingStats?.slamRadius || 0;
-
-      if (distance < 20) {
-        if (slamDamage > 0) {
-          this.createGrappleSlamExplosion(player.position, slamDamage, slamRadius);
+      if (player.grappleTargetType === 'enemy' && player.grappleTargetId) {
+        // Find the enemy by ID
+        const targetEnemy = this.gameState.enemies.find(e => e.id === player.grappleTargetId);
+        if (targetEnemy && targetEnemy.health > 0) {
+          currentTargetPosition = targetEnemy.position;
         }
+      } else if (player.grappleTargetType === 'player' && player.grappleTargetId) {
+        // Find the remote player by ID
+        const targetPlayer = this.gameState.remotePlayers.find(rp => rp.id === player.grappleTargetId);
+        if (targetPlayer) {
+          currentTargetPosition = targetPlayer.player.position;
+        }
+      } else if (player.grappleTargetType === 'obstacle') {
+        // Use the static grapple target position for obstacles
+        currentTargetPosition = player.grappleTarget || null;
+      }
+
+      // If target not found (died/removed), cancel the grapple
+      if (!currentTargetPosition) {
         player.isGrappling = false;
         player.isGliding = true;
-        player.glideVelocity = vectorScale(vectorNormalize(toTarget), 3);
+        // Preserve momentum when target is lost
+        player.glideVelocity = player.velocity ? vectorScale(player.velocity, 1.0) : createVector(0, 0);
+        player.grappleTarget = undefined;
+        player.grappleTargetId = undefined;
+        player.grappleTargetType = undefined;
       } else {
-        const pullDir = vectorNormalize(toTarget);
-        const baseVelocity = vectorScale(pullDir, pullSpeed);
+        // Update grapple target to current position (for moving targets)
+        player.grappleTarget = currentTargetPosition;
 
-        // Get screen-space input (always left = left, right = right)
-        const screenSwing = createVector(0, 0);
-        if (this.keys.has('a')) screenSwing.x -= 1; // Move left on screen
-        if (this.keys.has('d')) screenSwing.x += 1; // Move right on screen
-        if (this.keys.has('w')) screenSwing.y -= 1; // Move up on screen
-        if (this.keys.has('s')) screenSwing.y += 1; // Move down on screen
+        const toTarget = vectorSubtract(currentTargetPosition, player.position);
+        const distance = Math.sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
 
-        // Apply swing force in screen space, constrained to be perpendicular to rope
-        const swingStrength = 3;
-        // Project the screen input onto the perpendicular-to-rope direction
-        const perpDir = createVector(-pullDir.y, pullDir.x);
-        const swingDot = screenSwing.x * perpDir.x + screenSwing.y * perpDir.y;
-        const swingVelocity = vectorScale(perpDir, swingDot * swingStrength);
+        const activeWeapon = player.equippedWeapons[player.activeWeaponIndex];
+        const pullSpeed = (activeWeapon?.grapplingStats?.pullSpeed || 10) * 0.4; // Slowed down to 40% of original
+        const slamDamage = activeWeapon?.grapplingStats?.slamDamage || 0;
+        const slamRadius = activeWeapon?.grapplingStats?.slamRadius || 0;
 
-        // Combine pull and swing with physics-based rope constraint
-        let combinedVelocity = vectorAdd(baseVelocity, swingVelocity);
+        if (distance < 20) {
+          if (slamDamage > 0) {
+            this.createGrappleSlamExplosion(player.position, slamDamage, slamRadius);
+          }
+          player.isGrappling = false;
+          player.isGliding = true;
+          player.glideVelocity = vectorScale(vectorNormalize(toTarget), 3);
+          player.grappleTarget = undefined;
+          player.grappleTargetId = undefined;
+          player.grappleTargetType = undefined;
+        } else {
+          const pullDir = vectorNormalize(toTarget);
+          const baseVelocity = vectorScale(pullDir, pullSpeed);
 
-        // Add pendulum-like physics: preserve existing perpendicular momentum
-        if (player.velocity) {
-          const perpMomentum = (player.velocity.x * perpDir.x + player.velocity.y * perpDir.y) * 0.3;
-          const perpVel = vectorScale(perpDir, perpMomentum);
-          combinedVelocity = vectorAdd(combinedVelocity, perpVel);
+          // Get screen-space input (always left = left, right = right)
+          const screenSwing = createVector(0, 0);
+          if (this.keys.has('a')) screenSwing.x -= 1; // Move left on screen
+          if (this.keys.has('d')) screenSwing.x += 1; // Move right on screen
+          if (this.keys.has('w')) screenSwing.y -= 1; // Move up on screen
+          if (this.keys.has('s')) screenSwing.y += 1; // Move down on screen
+
+          // Apply swing force in screen space, constrained to be perpendicular to rope
+          const swingStrength = 3;
+          // Project the screen input onto the perpendicular-to-rope direction
+          const perpDir = createVector(-pullDir.y, pullDir.x);
+          const swingDot = screenSwing.x * perpDir.x + screenSwing.y * perpDir.y;
+          const swingVelocity = vectorScale(perpDir, swingDot * swingStrength);
+
+          // Combine pull and swing with physics-based rope constraint
+          let combinedVelocity = vectorAdd(baseVelocity, swingVelocity);
+
+          // Add pendulum-like physics: preserve existing perpendicular momentum
+          if (player.velocity) {
+            const perpMomentum = (player.velocity.x * perpDir.x + player.velocity.y * perpDir.y) * 0.3;
+            const perpVel = vectorScale(perpDir, perpMomentum);
+            combinedVelocity = vectorAdd(combinedVelocity, perpVel);
+          }
+
+          player.velocity = combinedVelocity;
+          player.position = vectorAdd(player.position, vectorScale(player.velocity, dt * 60));
         }
-
-        player.velocity = combinedVelocity;
-        player.position = vectorAdd(player.position, vectorScale(player.velocity, dt * 60));
       }
     } else if (player.isGliding && player.glideVelocity) {
       // Faster decay for shorter gliding
@@ -808,7 +853,7 @@ export class GameEngine {
 
         if (this.modifierSystem.isModifiedEnemy(enemy) && enemy.modifiers && enemy.modifiers.includes('thorns')) {
           const thornsDamage = (enemy as any).thornsDamage || (enemy.damage * 0.5);
-          player.health -= thornsDamage;
+          this.applyDamageToPlayer(thornsDamage);
           this.createParticles(player.position, 8, '#ef4444', 0.4);
           if (player.health <= 0) {
             this.gameState.isGameOver = true;
@@ -861,7 +906,7 @@ export class GameEngine {
           const inAngle = Math.abs(angleDiff) <= halfAngle;
 
           if (inRange && inAngle) {
-            remotePlayer.player.health -= totalDamage;
+            this.applyDamageToPlayer(totalDamage, remotePlayer.player);
             this.createDamageNumber(remotePlayer.player.position, totalDamage, weapon.color);
             this.createParticles(remotePlayer.player.position, 15, '#ff6600', 0.4);
 
@@ -1039,7 +1084,7 @@ export class GameEngine {
 
           if (this.modifierSystem.isModifiedEnemy(enemy) && enemy.modifiers && enemy.modifiers.includes('thorns')) {
             const thornsDamage = (enemy as any).thornsDamage || (enemy.damage * 0.5);
-            player.health -= thornsDamage;
+            this.applyDamageToPlayer(thornsDamage);
             this.createParticles(player.position, 8, '#ef4444', 0.4);
             if (player.health <= 0) {
               this.gameState.isGameOver = true;
@@ -1819,7 +1864,7 @@ export class GameEngine {
         createProjectile: (proj: any) => this.gameState.projectiles.push(proj),
         createParticles: (pos, count, color, lifetime) => this.createParticles(pos, count, color, lifetime),
         damagePlayer: (damage) => {
-          player.health -= damage;
+          this.applyDamageToPlayer(damage);
           this.checkPlayerDeath();
         },
         findNearestPlayer: (pos) => this.findNearestPlayer(pos).position,
@@ -2257,7 +2302,7 @@ export class GameEngine {
 
               if (this.modifierSystem.isModifiedEnemy(enemy) && enemy.modifiers && enemy.modifiers.includes('thorns')) {
                 const thornsDamage = (enemy as any).thornsDamage || (enemy.damage * 0.5);
-                player.health -= thornsDamage;
+                this.applyDamageToPlayer(thornsDamage);
                 this.createParticles(player.position, 8, '#ef4444', 0.4);
                 if (player.health <= 0) {
                   this.gameState.isGameOver = true;
@@ -2358,7 +2403,7 @@ export class GameEngine {
           if (this.gameState.pvpEnabled) {
             this.gameState.remotePlayers.forEach((remotePlayer) => {
               if (projectile.playerId !== remotePlayer.player.id && checkCollision(projectile, remotePlayer.player) && !remotePlayer.player.isDashing) {
-                remotePlayer.player.health -= projectile.damage;
+                this.applyDamageToPlayer(projectile.damage, remotePlayer.player);
                 this.createDamageNumber(remotePlayer.player.position, projectile.damage, '#ff6600');
                 this.createParticles(remotePlayer.player.position, 8, '#ff0000', 0.4);
                 
@@ -2381,7 +2426,7 @@ export class GameEngine {
             });
 
             if (projectile.playerId && projectile.playerId !== player.id && checkCollision(projectile, player) && !player.isDashing) {
-              player.health -= projectile.damage;
+              this.applyDamageToPlayer(projectile.damage);
               this.checkPlayerDeath();
               this.createDamageNumber(player.position, projectile.damage, '#ff6600');
               this.createParticles(player.position, 8, '#ff0000', 0.4);
@@ -2405,7 +2450,7 @@ export class GameEngine {
           return !hit;
         } else {
           if (checkCollision(projectile, player) && !player.isDashing) {
-            player.health -= projectile.damage;
+            this.applyDamageToPlayer(projectile.damage);
             this.checkPlayerDeath();
             this.createParticles(player.position, 8, '#ff0000', 0.4);
 
@@ -2422,7 +2467,7 @@ export class GameEngine {
 
       if (checkCollision(enemy, player) && !player.isDashing) {
         if (enemy.attackCooldown <= 0) {
-          player.health -= enemy.damage;
+          this.applyDamageToPlayer(enemy.damage);
           enemy.attackCooldown = 1;
           this.createParticles(player.position, 5, '#ff0000', 0.3);
           this.checkPlayerDeath();
@@ -2436,7 +2481,7 @@ export class GameEngine {
         const lastHitTime = (this.voidSubdivider as any).lastPlayerHit || 0;
 
         if (currentTime - lastHitTime > 1000) {
-          player.health -= this.voidSubdivider.damage;
+          this.applyDamageToPlayer(this.voidSubdivider.damage);
           (this.voidSubdivider as any).lastPlayerHit = currentTime;
           this.createParticles(player.position, 8, '#7c3aed', 0.4);
 
@@ -2461,7 +2506,7 @@ export class GameEngine {
           const distToLine = Math.abs(distToHead * Math.sin(angleDiff));
 
           if (distToLine < breathWidth / 2) {
-            player.health -= this.voidSubdivider.damage * 0.5 * dt;
+            this.applyDamageToPlayer(this.voidSubdivider.damage * 0.5 * dt);
             if (Math.random() < 0.1) {
               this.createParticles(player.position, 3, '#a78bfa', 0.3);
             }
@@ -3020,8 +3065,11 @@ export class GameEngine {
 
     let nearestTarget: { x: number; y: number } | null = null;
     let nearestDist = maxRange;
+    let targetId: string | undefined;
+    let targetType: 'enemy' | 'player' | 'obstacle' | undefined;
     const attachAngle = 0.3 + (attachBonus / 1000);
 
+    // Check for enemies
     for (const enemy of this.gameState.enemies) {
       if (enemy.health <= 0) continue;
       const toEnemy = vectorSubtract(enemy.position, player.position);
@@ -3033,10 +3081,30 @@ export class GameEngine {
         if (dist < nearestDist) {
           nearestDist = dist;
           nearestTarget = enemy.position;
+          targetId = enemy.id;
+          targetType = 'enemy';
         }
       }
     }
 
+    // Check for remote players (multiplayer)
+    for (const remotePlayer of this.gameState.remotePlayers) {
+      const toPlayer = vectorSubtract(remotePlayer.player.position, player.position);
+      const angleToPlayer = Math.atan2(toPlayer.y, toPlayer.x);
+      const angleDiff = Math.abs(angleToPlayer - angle);
+
+      if (angleDiff < attachAngle) {
+        const dist = vectorDistance(player.position, remotePlayer.player.position);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestTarget = remotePlayer.player.position;
+          targetId = remotePlayer.id;
+          targetType = 'player';
+        }
+      }
+    }
+
+    // Check for obstacles
     for (const obstacle of this.obstacles) {
       const toObstacle = vectorSubtract(obstacle.position, player.position);
       const angleToObstacle = Math.atan2(toObstacle.y, toObstacle.x);
@@ -3050,6 +3118,8 @@ export class GameEngine {
           const rayDir = vectorFromAngle(angle);
           const intersectionPoint = this.calculateObstacleIntersection(player.position, rayDir, obstacle);
           nearestTarget = intersectionPoint;
+          targetId = undefined;
+          targetType = 'obstacle';
         }
       }
     }
@@ -3057,6 +3127,8 @@ export class GameEngine {
     if (nearestTarget) {
       player.isGrappling = true;
       player.grappleTarget = { ...nearestTarget };
+      player.grappleTargetId = targetId;
+      player.grappleTargetType = targetType;
       player.grappleProgress = 0;
       player.isGliding = false;
       this.createParticles(player.position, 15, '#888888', 0.3);
@@ -3214,6 +3286,65 @@ export class GameEngine {
     }
   }
 
+  private updateDrones(dt: number): void {
+    const player = this.gameState.player;
+
+    this.droneSystem.updateDrones(
+      this.gameState.drones,
+      player.position,
+      this.gameState.enemies,
+      dt,
+      (projectile: Projectile) => {
+        this.gameState.projectiles.push(projectile);
+      }
+    );
+
+    const { healthRepaired, shieldAbsorbed } = this.droneSystem.applyDroneSpecialAbilities(
+      this.gameState.drones,
+      player.health,
+      player.maxHealth,
+      dt
+    );
+
+    if (healthRepaired > 0 && player.health < player.maxHealth) {
+      player.health = Math.min(player.health + healthRepaired, player.maxHealth);
+    }
+
+    player.shieldAbsorption = shieldAbsorbed;
+
+    this.gameState.drones = this.gameState.drones.filter(drone => drone.health > 0);
+  }
+
+  private applyDamageToPlayer(damage: number, player: import('../types/game').Player = this.gameState.player): number {
+    const shieldAbsorption = player.shieldAbsorption || 0;
+    const reducedDamage = Math.max(0, damage - shieldAbsorption);
+    player.health -= reducedDamage;
+    return reducedDamage;
+  }
+
+  private syncDrones(): void {
+    const player = this.gameState.player;
+    const equippedDroneTypes = player.equippedDrones || [];
+    const currentDrones = this.gameState.drones;
+
+    const dronesById = new Map(currentDrones.map(d => [d.droneType, d]));
+
+    const newDrones: Drone[] = [];
+    equippedDroneTypes.forEach((droneType, index) => {
+      const existing = dronesById.get(droneType);
+      if (existing) {
+        newDrones.push(existing);
+        dronesById.delete(droneType);
+      } else {
+        const startAngle = (index / equippedDroneTypes.length) * Math.PI * 2;
+        const newDrone = this.droneSystem.createDrone(droneType, player.id, player.position, startAngle);
+        newDrones.push(newDrone);
+      }
+    });
+
+    this.gameState.drones = newDrones;
+  }
+
   togglePause(): void {
     this.gameState.isPaused = !this.gameState.isPaused;
   }
@@ -3328,6 +3459,19 @@ export class GameEngine {
     const weaponCrate = this.crateSystem.generateWeaponCrate();
     this.spawnWeaponDrop(spawnPos, weaponCrate.weapon, weaponCrate.perks);
     this.createParticles(spawnPos, 40, '#fbbf24', 0.8);
+  }
+
+  spawnAdminDrone(droneType: import('../types/game').DroneType): void {
+    this.inventory.addDrone(droneType);
+    
+    if (this.inventory.canEquipMoreDrones()) {
+      const success = this.inventory.equipDrone(droneType);
+      if (success) {
+        this.gameState.player.equippedDrones = this.inventory.getEquippedDrones();
+        this.syncDrones();
+        this.createParticles(this.gameState.player.position, 30, '#4ade80', 0.6);
+      }
+    }
   }
 
   getMultiplayerState(hostPeerId: string): Partial<GameState> {
@@ -3471,6 +3615,7 @@ export class GameEngine {
       isDashing: false,
       currency: 0,
       equippedWeapons,
+      equippedDrones: [],
       activeWeaponIndex: 0,
       portalCooldown: 0,
       isGrappling: false,

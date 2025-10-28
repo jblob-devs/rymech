@@ -490,6 +490,36 @@ function App() {
                   </button>
                 </div>
 
+                <div>
+                  <h3 className="text-slate-300 font-semibold mb-2">Spawn Drones</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminDrone('assault_drone')}
+                      className="px-3 py-2 bg-red-700 hover:bg-red-600 rounded text-sm transition-colors"
+                    >
+                      Assault Drone
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminDrone('shield_drone')}
+                      className="px-3 py-2 bg-blue-700 hover:bg-blue-600 rounded text-sm transition-colors"
+                    >
+                      Shield Drone
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminDrone('repair_drone')}
+                      className="px-3 py-2 bg-green-700 hover:bg-green-600 rounded text-sm transition-colors"
+                    >
+                      Repair Drone
+                    </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.spawnAdminDrone('scout_drone')}
+                      className="px-3 py-2 bg-yellow-700 hover:bg-yellow-600 rounded text-sm transition-colors"
+                    >
+                      Scout Drone
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   onClick={() => setAdminMode(false)}
                   className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-bold text-white transition-colors"

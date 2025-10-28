@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GameState, Particle, Enemy, Chest, WeaponDrop, ResourceDrop } from '../types/game';
+import { GameState, Particle, Enemy, Chest, WeaponDrop, ResourceDrop, Drone } from '../types/game';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/constants';
 import { Camera } from '../game/Camera';
 import { ResourceNode, Portal, ExtractionPoint } from '../game/WorldGeneration';
@@ -223,6 +223,10 @@ export default function GameCanvas({
         drawModifiedEnemyVisuals(ctx, enemy, camera, modifierSystem);
         drawModifierTags(ctx, enemy, camera);
       }
+    });
+
+    gameState.drones.forEach(drone => {
+      drawDrone(ctx, drone, camera);
     });
 
     const voidBoss = engine.getVoidSubdivider();
@@ -1225,18 +1229,196 @@ export default function GameCanvas({
         ctx.lineWidth = 2;
         ctx.stroke();
       }
+    } else if (enemy.type === 'miniboss') {
+      if (enemy.minibossSubtype === 'angulodon') {
+        if (enemy.segments && enemy.segments.length > 0) {
+          for (let i = enemy.segments.length - 1; i >= 0; i--) {
+            const segment = enemy.segments[i];
+            const segmentScreenPos = camera.worldToScreen(segment.position);
+            
+            ctx.save();
+            ctx.translate(segmentScreenPos.x, segmentScreenPos.y);
+            
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, segment.size / 2);
+            gradient.addColorStop(0, enemy.secondaryColor || '#06b6d4');
+            gradient.addColorStop(0.5, enemy.color);
+            gradient.addColorStop(1, '#064e5e');
+            ctx.fillStyle = gradient;
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, segment.size / 2, segment.size / 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (i === 0) {
+              const jawOpenAmount = (enemy.jaws && enemy.jaws.isOpen) ? 0.4 : 0.1;
+              
+              ctx.fillStyle = '#0e7490';
+              ctx.beginPath();
+              ctx.moveTo(segment.size * 0.4, -jawOpenAmount * segment.size * 0.3);
+              ctx.lineTo(segment.size * 0.5, -jawOpenAmount * segment.size * 0.5);
+              ctx.lineTo(segment.size * 0.6, -jawOpenAmount * segment.size * 0.3);
+              ctx.closePath();
+              ctx.fill();
+              
+              ctx.beginPath();
+              ctx.moveTo(segment.size * 0.4, jawOpenAmount * segment.size * 0.3);
+              ctx.lineTo(segment.size * 0.5, jawOpenAmount * segment.size * 0.5);
+              ctx.lineTo(segment.size * 0.6, jawOpenAmount * segment.size * 0.3);
+              ctx.closePath();
+              ctx.fill();
+              
+              for (let j = 0; j < 6; j++) {
+                ctx.fillStyle = '#ffffff';
+                const toothY = (j % 2 === 0 ? -1 : 1) * (0.25 + (j / 12)) * segment.size;
+                ctx.fillRect(segment.size * 0.45 + j * 3, toothY - 2, 2, 6);
+              }
+              
+              ctx.fillStyle = '#22d3ee';
+              ctx.shadowBlur = 5;
+              ctx.shadowColor = '#22d3ee';
+              ctx.beginPath();
+              ctx.arc(-segment.size * 0.25, -segment.size * 0.15, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(-segment.size * 0.25, segment.size * 0.15, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            }
+            
+            if (i === enemy.segments.length - 1) {
+              ctx.fillStyle = '#0891b2';
+              ctx.beginPath();
+              ctx.moveTo(-segment.size * 0.4, 0);
+              ctx.lineTo(-segment.size * 0.6, -segment.size * 0.4);
+              ctx.lineTo(-segment.size * 0.5, 0);
+              ctx.lineTo(-segment.size * 0.6, segment.size * 0.4);
+              ctx.closePath();
+              ctx.fill();
+            }
+            
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, segment.size / 2, segment.size / 2.5, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.restore();
+          }
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, enemy.size / 2, enemy.size / 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        if (enemy.whirlpoolAngle !== undefined && enemy.pullRadius) {
+          const whirlpoolScreenPos = camera.worldToScreen(enemy.position);
+          ctx.save();
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.4;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.arc(whirlpoolScreenPos.x, whirlpoolScreenPos.y, enemy.pullRadius * (0.5 + i * 0.25), 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1.0;
+          ctx.restore();
+        }
+      } else if (enemy.minibossSubtype === 'cryostag_vanguard') {
+        const bodyGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.size / 2);
+        bodyGradient.addColorStop(0, '#93c5fd');
+        bodyGradient.addColorStop(0.5, '#60a5fa');
+        bodyGradient.addColorStop(1, '#2563eb');
+        ctx.fillStyle = bodyGradient;
+        
+        ctx.beginPath();
+        ctx.ellipse(0, 0, enemy.size / 2, enemy.size / 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#93c5fd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        const antlerCount = 2;
+        for (let side = -1; side <= 1; side += 2) {
+          for (let i = 0; i < antlerCount; i++) {
+            const antlerAngle = (i / antlerCount) * 0.5 - 0.25;
+            ctx.strokeStyle = '#7dd3fc';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            
+            const baseX = side * enemy.size * 0.2;
+            const baseY = -enemy.size * 0.35;
+            const tipX = baseX + side * enemy.size * 0.4 * Math.cos(antlerAngle);
+            const tipY = baseY - enemy.size * 0.5 * Math.abs(Math.sin(antlerAngle));
+            
+            ctx.beginPath();
+            ctx.moveTo(baseX, baseY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#bfdbfe';
+            ctx.beginPath();
+            ctx.arc(tipX, tipY, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        ctx.fillStyle = '#dbeafe';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#60a5fa';
+        ctx.beginPath();
+        ctx.arc(-enemy.size * 0.15, -enemy.size * 0.1, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(enemy.size * 0.15, -enemy.size * 0.1, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        if (enemy.orbitalCannons && enemy.orbitalCannons.length > 0) {
+          enemy.orbitalCannons.forEach((cannon: any) => {
+            const cannonScreenPos = camera.worldToScreen(cannon.position);
+            ctx.save();
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#3b82f6';
+            ctx.fillStyle = '#3b82f6';
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cannonScreenPos.x, cannonScreenPos.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+        
+        if (enemy.shieldActive) {
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.6;
+          ctx.beginPath();
+          ctx.arc(0, 0, enemy.size * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, enemy.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     ctx.restore();
 
-    const healthBarWidth = enemy.type === 'boss' ? enemy.size * 1.5 : enemy.size * 1.2;
-    const healthBarHeight = enemy.type === 'boss' ? 5 : 3;
+    const isLargeBoss = enemy.type === 'boss' || enemy.type === 'miniboss';
+    const healthBarWidth = isLargeBoss ? enemy.size * 1.5 : enemy.size * 1.2;
+    const healthBarHeight = isLargeBoss ? 5 : 3;
     const healthPercent = enemy.health / enemy.maxHealth;
 
     ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
     ctx.fillRect(
       screenPos.x - healthBarWidth / 2,
-      screenPos.y - enemy.size / 2 - (enemy.type === 'boss' ? 12 : 8),
+      screenPos.y - enemy.size / 2 - (isLargeBoss ? 12 : 8),
       healthBarWidth,
       healthBarHeight
     );
@@ -1244,7 +1426,7 @@ export default function GameCanvas({
     ctx.fillStyle = enemy.color;
     ctx.fillRect(
       screenPos.x - healthBarWidth / 2,
-      screenPos.y - enemy.size / 2 - (enemy.type === 'boss' ? 12 : 8),
+      screenPos.y - enemy.size / 2 - (isLargeBoss ? 12 : 8),
       healthBarWidth * healthPercent,
       healthBarHeight
     );
@@ -1256,7 +1438,126 @@ export default function GameCanvas({
       ctx.textAlign = 'center';
       ctx.fillText('BOSS', screenPos.x, screenPos.y - enemy.size / 2 - 20);
       ctx.restore();
+    } else if (enemy.type === 'miniboss') {
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = enemy.color;
+      ctx.fillText('MINIBOSS', screenPos.x, screenPos.y - enemy.size / 2 - 20);
+      ctx.restore();
     }
+  };
+
+  const drawDrone = (ctx: CanvasRenderingContext2D, drone: Drone, camera: Camera) => {
+    if (!camera.isInView(drone.position, 100)) return;
+
+    const screenPos = camera.worldToScreen(drone.position);
+
+    ctx.save();
+    ctx.translate(screenPos.x, screenPos.y);
+    ctx.rotate(drone.rotation);
+
+    if (drone.droneType === 'assault_drone') {
+      ctx.fillStyle = drone.color;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = drone.color;
+      ctx.beginPath();
+      ctx.moveTo(drone.size / 2, 0);
+      ctx.lineTo(-drone.size / 2, -drone.size / 2);
+      ctx.lineTo(-drone.size / 3, 0);
+      ctx.lineTo(-drone.size / 2, drone.size / 2);
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.fillStyle = drone.secondaryColor;
+      ctx.fillRect(-drone.size / 4, -1, drone.size / 3, 2);
+    } else if (drone.droneType === 'shield_drone') {
+      ctx.fillStyle = drone.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = drone.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, drone.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      if (drone.shieldActive) {
+        ctx.strokeStyle = drone.secondaryColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, drone.size * 0.75, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+    } else if (drone.droneType === 'repair_drone') {
+      ctx.fillStyle = drone.color;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = drone.color;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI * 2) / 4;
+        const x = Math.cos(angle) * drone.size / 2;
+        const y = Math.sin(angle) * drone.size / 2;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-drone.size / 4, -1, drone.size / 2, 2);
+      ctx.fillRect(-1, -drone.size / 4, 2, drone.size / 2);
+    } else if (drone.droneType === 'scout_drone') {
+      ctx.fillStyle = drone.color;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = drone.color;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const angle = (i * Math.PI * 2) / 3;
+        const x = Math.cos(angle) * drone.size / 2;
+        const y = Math.sin(angle) * drone.size / 2;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = drone.secondaryColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, drone.size * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    const healthBarWidth = drone.size * 1.2;
+    const healthBarHeight = 2;
+    const healthPercent = drone.health / drone.maxHealth;
+
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+    ctx.fillRect(
+      screenPos.x - healthBarWidth / 2,
+      screenPos.y - drone.size / 2 - 6,
+      healthBarWidth,
+      healthBarHeight
+    );
+
+    ctx.fillStyle = drone.color;
+    ctx.fillRect(
+      screenPos.x - healthBarWidth / 2,
+      screenPos.y - drone.size / 2 - 6,
+      healthBarWidth * healthPercent,
+      healthBarHeight
+    );
   };
 
   const drawModifierTags = (ctx: CanvasRenderingContext2D, enemy: any, camera: Camera) => {
