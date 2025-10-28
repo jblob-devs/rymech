@@ -3187,7 +3187,7 @@ export class GameEngine {
 
   updateRemotePlayerFromInput(playerId: string, input: import('./MultiplayerManager').PlayerInput): void {
     let remotePlayer = this.gameState.remotePlayers.find(rp => rp.peerId === playerId);
-    
+
     if (!remotePlayer) {
       remotePlayer = {
         id: `remote_${playerId}`,
@@ -3203,24 +3203,10 @@ export class GameEngine {
       remotePlayer.username = input.username;
     }
 
-    const keys = new Set(input.keys);
     const player = remotePlayer.player;
-    
+
     if (input.activeWeaponIndex !== undefined && input.activeWeaponIndex !== player.activeWeaponIndex) {
       player.activeWeaponIndex = Math.min(input.activeWeaponIndex, player.equippedWeapons.length - 1);
-    }
-    
-    const moveDir = createVector();
-    if (keys.has('w') || keys.has('arrowup')) moveDir.y -= 1;
-    if (keys.has('s') || keys.has('arrowdown')) moveDir.y += 1;
-    if (keys.has('a') || keys.has('arrowleft')) moveDir.x -= 1;
-    if (keys.has('d') || keys.has('arrowright')) moveDir.x += 1;
-    
-    if (moveDir.x !== 0 || moveDir.y !== 0) {
-      const normalized = vectorNormalize(moveDir);
-      player.velocity = vectorScale(normalized, player.speed);
-    } else {
-      player.velocity = createVector();
     }
 
     if (input.mousePos) {

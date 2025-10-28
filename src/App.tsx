@@ -93,15 +93,16 @@ function App() {
         }
       } else if (role === 'client') {
         if (multiplayerManager.isWorldInitialized()) {
+          gameEngineRef.current.updateRemotePlayerPositions(deltaTime);
           gameEngineRef.current.update(deltaTime);
-          
+
           const keys = Array.from(gameEngineRef.current.getKeys());
           const mousePos = gameEngineRef.current.getMousePos();
           const mouseDown = gameEngineRef.current.getMouseDown();
           const state = gameEngineRef.current.getState();
           const activeWeaponIndex = state.player.activeWeaponIndex;
           const username = localStorage.getItem('mp_username') || 'Player';
-          
+
           multiplayerManager.sendPlayerInput({
             keys,
             mousePos,
@@ -111,6 +112,11 @@ function App() {
             activeWeaponIndex,
             username,
           });
+
+          if (time - lastSyncTime.current > 50) {
+            multiplayerManager.sendPositionSync(state.player.position, state.player.velocity);
+            lastSyncTime.current = time;
+          }
         }
       } else {
         gameEngineRef.current.update(deltaTime);
