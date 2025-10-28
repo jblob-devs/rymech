@@ -231,9 +231,19 @@ export default function GameCanvas({
     }
 
     drawGrapplingHook(ctx, gameState.player, camera);
+    
+    const meleeRenderer = engine.getMeleeWeaponRenderer();
+    if (activeWeapon?.meleeStats) {
+      meleeRenderer.drawMeleeWeapon(ctx, gameState.player, activeWeapon, camera, true);
+    }
+    
     drawPlayer(ctx, gameState.player, camera);
     
     gameState.remotePlayers?.forEach((remotePlayer) => {
+      const remoteActiveWeapon = remotePlayer.player.equippedWeapons[remotePlayer.player.activeWeaponIndex];
+      if (remoteActiveWeapon?.meleeStats) {
+        meleeRenderer.drawMeleeWeapon(ctx, remotePlayer.player, remoteActiveWeapon, camera, false);
+      }
       drawRemotePlayer(ctx, remotePlayer.player, camera, remotePlayer.peerId.substring(0, 8));
     });
     

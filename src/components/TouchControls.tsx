@@ -53,14 +53,23 @@ export default function TouchControls({
 
   const JOYSTICK_MAX_DISTANCE = 50;
 
+  const onMoveRef = useRef(onMove);
+  const onShootRef = useRef(onShoot);
+  
   useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      if (!isVisible) return;
+    onMoveRef.current = onMove;
+    onShootRef.current = onShoot;
+  }, [onMove, onShoot]);
 
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
       Array.from(e.changedTouches).forEach((touch) => {
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
 
         if (moveZoneRef.current?.contains(target) && moveActiveTouchId.current === null) {
+          e.preventDefault();
           const rect = moveZoneRef.current.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
@@ -76,6 +85,7 @@ export default function TouchControls({
         }
 
         if (shootZoneRef.current?.contains(target) && shootActiveTouchId.current === null) {
+          e.preventDefault();
           const rect = shootZoneRef.current.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
           const centerY = rect.top + rect.height / 2;
@@ -93,13 +103,17 @@ export default function TouchControls({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isVisible) return;
-      e.preventDefault();
-
+      let needsPreventDefault = false;
+      
       Array.from(e.changedTouches).forEach((touch) => {
-        if (touch.identifier === moveActiveTouchId.current && moveJoystick.active) {
-          const dx = touch.clientX - moveJoystick.startX;
-          const dy = touch.clientY - moveJoystick.startY;
+        if (touch.identifier === moveActiveTouchId.current) {
+          needsPreventDefault = true;
+          const currentJoystick = moveJoystick.active ? moveJoystick : 
+            { startX: moveZoneRef.current!.getBoundingClientRect().left + 64, 
+              startY: moveZoneRef.current!.getBoundingClientRect().top + 64 };
+          
+          const dx = touch.clientX - currentJoystick.startX;
+          const dy = touch.clientY - currentJoystick.startY;
           const distance = Math.sqrt(dx * dx + dy * dy);
           const clampedDistance = Math.min(distance, JOYSTICK_MAX_DISTANCE);
           const angle = Math.atan2(dy, dx);
@@ -113,12 +127,17 @@ export default function TouchControls({
             y: clampedY,
           }));
 
-          onMove(clampedX / JOYSTICK_MAX_DISTANCE, clampedY / JOYSTICK_MAX_DISTANCE);
+          onMoveRef.current(clampedX / JOYSTICK_MAX_DISTANCE, clampedY / JOYSTICK_MAX_DISTANCE);
         }
 
-        if (touch.identifier === shootActiveTouchId.current && shootJoystick.active) {
-          const dx = touch.clientX - shootJoystick.startX;
-          const dy = touch.clientY - shootJoystick.startY;
+        if (touch.identifier === shootActiveTouchId.current) {
+          needsPreventDefault = true;
+          const currentJoystick = shootJoystick.active ? shootJoystick :
+            { startX: shootZoneRef.current!.getBoundingClientRect().left + 64,
+              startY: shootZoneRef.current!.getBoundingClientRect().top + 64 };
+              
+          const dx = touch.clientX - currentJoystick.startX;
+          const dy = touch.clientY - currentJoystick.startY;
           const distance = Math.sqrt(dx * dx + dy * dy);
           const clampedDistance = Math.min(distance, JOYSTICK_MAX_DISTANCE);
           const angle = Math.atan2(dy, dx);
@@ -132,9 +151,13 @@ export default function TouchControls({
             y: clampedY,
           }));
 
-          onShoot(clampedX / JOYSTICK_MAX_DISTANCE, clampedY / JOYSTICK_MAX_DISTANCE, true);
+          onShootRef.current(clampedX / JOYSTICK_MAX_DISTANCE, clampedY / JOYSTICK_MAX_DISTANCE, true);
         }
       });
+      
+      if (needsPreventDefault) {
+        e.preventDefault();
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -148,7 +171,7 @@ export default function TouchControls({
             startX: 0,
             startY: 0,
           });
-          onMove(0, 0);
+          onMoveRef.current(0, 0);
         }
 
         if (touch.identifier === shootActiveTouchId.current) {
@@ -160,15 +183,15 @@ export default function TouchControls({
             startX: 0,
             startY: 0,
           });
-          onShoot(0, 0, false);
+          onShootRef.current(0, 0, false);
         }
       });
     };
 
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-    document.addEventListener('touchcancel', handleTouchEnd);
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
@@ -176,7 +199,7 @@ export default function TouchControls({
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isVisible, moveJoystick.active, shootJoystick.active, moveJoystick.startX, moveJoystick.startY, shootJoystick.startX, shootJoystick.startY, onMove, onShoot]);
+  }, [isVisible, moveJoystick.active, moveJoystick.startX, moveJoystick.startY, shootJoystick.active, shootJoystick.startX, shootJoystick.startY]);
 
   if (!isVisible) {
     return (

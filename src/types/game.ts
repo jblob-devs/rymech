@@ -11,7 +11,13 @@ export type WeaponType =
   | 'beam_laser'
   | 'charge_cannon'
   | 'grappling_hook'
-  | 'void_blade';
+  | 'void_blade'
+  | 'crimson_scythe'
+  | 'titan_hammer'
+  | 'flowing_glaive'
+  | 'shadow_daggers'
+  | 'berserker_axe'
+  | 'guardian_blade';
 
 export interface Vector2 {
   x: number;
@@ -247,6 +253,7 @@ export interface Weapon {
   swingTimer?: number;
   comboCounter?: number;
   comboResetTimer?: number;
+  meleeFormId?: string;
 }
 
 export interface WeaponDrop extends Entity {
@@ -304,6 +311,9 @@ export interface RemotePlayer {
   player: Player;
   lastUpdate: number;
   username?: string;
+  serverPosition?: Vector2;
+  serverVelocity?: Vector2;
+  interpolationAlpha?: number;
 }
 
 export interface GameState {

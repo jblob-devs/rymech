@@ -51,6 +51,8 @@ import { TradingPostSystem } from './TradingPostSystem';
 import { EnemyModifierSystem, ModifiedEnemy } from './EnemyModifierSystem';
 import { CraftingSystem } from './CraftingSystem';
 import { VoidSubdivider, createVoidSubdivider, updateVoidSubdivider, checkVoidSubdividerCollision } from './VoidSubdivider';
+import { MeleeWeaponRenderer } from './MeleeWeaponRenderer';
+import { MELEE_FORMS, getFormForWeapon, MeleeForm } from './MeleeWeaponForms';
 
 export class GameEngine {
   private gameState: GameState;
@@ -80,6 +82,7 @@ export class GameEngine {
   private voidSubdivider: VoidSubdivider | null = null;
   private voidGapBossSpawned: Set<string> = new Set();
   private activeOminousTendril: { featureId: string; canInteract: boolean } | null = null;
+  private meleeWeaponRenderer: MeleeWeaponRenderer;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -92,6 +95,7 @@ export class GameEngine {
     this.tradingPostSystem = new TradingPostSystem();
     this.modifierSystem = new EnemyModifierSystem();
     this.craftingSystem = new CraftingSystem();
+    this.meleeWeaponRenderer = new MeleeWeaponRenderer();
     this.gameState = this.createInitialState();
     this.biomeManager.setWorldGenerator(this.worldGenerator);
 
@@ -212,6 +216,10 @@ export class GameEngine {
 
   getCraftingSystem(): CraftingSystem {
     return this.craftingSystem;
+  }
+
+  getMeleeWeaponRenderer(): MeleeWeaponRenderer {
+    return this.meleeWeaponRenderer;
   }
 
   useConsumable(consumableId: string): void {
@@ -685,22 +693,31 @@ export class GameEngine {
     if (!weapon.meleeStats) return;
 
     const player = this.gameState.player;
-    const angle = player.rotation;
-
+    
+    if (!weapon.meleeFormId) {
+      weapon.meleeFormId = getFormForWeapon(weapon.type).id;
+    }
+    
+    const form = MELEE_FORMS[weapon.meleeFormId] || MELEE_FORMS.basic_form;
+    
     weapon.isSwinging = true;
-    weapon.swingTimer = weapon.meleeStats.swingDuration;
     weapon.comboCounter = (weapon.comboCounter || 0) + 1;
     weapon.comboResetTimer = 1.0;
 
-    if (weapon.comboCounter && weapon.comboCounter > (weapon.meleeStats.comboCount || 3)) {
+    if (weapon.comboCounter > form.comboPattern.length) {
       weapon.comboCounter = 1;
     }
 
-    const comboMultiplier = 1 + ((weapon.comboCounter || 1) - 1) * ((weapon.meleeStats.comboDamageMultiplier || 1.5) - 1) / ((weapon.meleeStats.comboCount || 3) - 1);
-    const dashMultiplier = player.isDashing ? (weapon.meleeStats.dashSlashBonus || 2.0) : 1.0;
-    const totalDamage = weapon.damage * comboMultiplier * dashMultiplier;
+    const strike = form.comboPattern[(weapon.comboCounter - 1) % form.comboPattern.length];
+    weapon.swingTimer = weapon.meleeStats.swingDuration / strike.speedModifier;
+    
+    const angle = player.rotation + (strike.angleOffset * Math.PI / 180);
 
-    const swingAngle = (weapon.meleeStats.swingAngle || 90) * (Math.PI / 180);
+    const comboMultiplier = 1 + ((weapon.comboCounter || 1) - 1) * ((weapon.meleeStats.comboDamageMultiplier || 1.5) - 1) / (form.comboPattern.length - 1);
+    const dashMultiplier = player.isDashing ? (weapon.meleeStats.dashSlashBonus || 2.0) : 1.0;
+    const totalDamage = weapon.damage * comboMultiplier * dashMultiplier * strike.damageMultiplier;
+
+    const swingAngle = (weapon.meleeStats.swingAngle || 90) * strike.swingAngleModifier * (Math.PI / 180);
     const halfAngle = swingAngle / 2;
 
     this.gameState.enemies.forEach((enemy) => {
@@ -776,6 +793,31 @@ export class GameEngine {
         }
       }
     });
+
+    const hasDeflection = weapon.perks?.some((perk: any) => perk.id === 'projectile_deflection');
+    if (hasDeflection && weapon.isSwinging) {
+      this.gameState.projectiles.forEach((projectile) => {
+        if (projectile.owner === 'enemy') {
+          const toProjectile = vectorSubtract(projectile.position, player.position);
+          const distance = Math.sqrt(toProjectile.x * toProjectile.x + toProjectile.y * toProjectile.y);
+          const angleToProjectile = Math.atan2(toProjectile.y, toProjectile.x);
+
+          let angleDiff = angleToProjectile - angle;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          const inRange = distance <= (weapon.meleeStats.range || 80) + 20;
+          const inAngle = Math.abs(angleDiff) <= halfAngle;
+
+          if (inRange && inAngle) {
+            projectile.owner = 'player';
+            projectile.velocity = vectorScale(vectorNormalize(toProjectile), -projectile.projectileSpeed || 15);
+            projectile.color = weapon.color;
+            this.createParticles(projectile.position, 10, weapon.color, 0.3);
+          }
+        }
+      });
+    }
 
     const particleCount = 8 + (weapon.comboCounter || 1) * 2;
     this.createParticles(
@@ -3027,7 +3069,39 @@ export class GameEngine {
 
   applyMultiplayerState(state: Partial<GameState>, localPeerId: string): void {
     if (state.remotePlayers) {
-      this.gameState.remotePlayers = state.remotePlayers.filter(rp => rp.peerId !== localPeerId);
+      const newPlayers = state.remotePlayers.filter(rp => rp.peerId !== localPeerId);
+      
+      newPlayers.forEach(newPlayer => {
+        const existing = this.gameState.remotePlayers.find(rp => rp.peerId === newPlayer.peerId);
+        if (existing) {
+          existing.serverPosition = { ...newPlayer.player.position };
+          existing.serverVelocity = { ...newPlayer.player.velocity };
+          existing.interpolationAlpha = 0;
+          existing.player.rotation = newPlayer.player.rotation;
+          existing.player.health = newPlayer.player.health;
+          existing.player.maxHealth = newPlayer.player.maxHealth;
+          existing.player.equippedWeapons = newPlayer.player.equippedWeapons;
+          existing.player.activeWeaponIndex = newPlayer.player.activeWeaponIndex;
+          existing.player.isDashing = newPlayer.player.isDashing;
+          existing.player.isGrappling = newPlayer.player.isGrappling;
+          existing.player.isGliding = newPlayer.player.isGliding;
+          existing.lastUpdate = Date.now();
+          if (newPlayer.username) existing.username = newPlayer.username;
+        } else {
+          const newRemote = { 
+            ...newPlayer, 
+            serverPosition: { ...newPlayer.player.position },
+            serverVelocity: { ...newPlayer.player.velocity },
+            interpolationAlpha: 1,
+            lastUpdate: Date.now()
+          };
+          this.gameState.remotePlayers.push(newRemote);
+        }
+      });
+      
+      this.gameState.remotePlayers = this.gameState.remotePlayers.filter(
+        rp => newPlayers.some(np => np.peerId === rp.peerId)
+      );
     }
     
     if (state.enemies) this.gameState.enemies = state.enemies;
@@ -3195,7 +3269,32 @@ export class GameEngine {
   updateRemotePlayerPositions(deltaTime: number): void {
     this.gameState.remotePlayers.forEach(remotePlayer => {
       const player = remotePlayer.player;
-      player.position = vectorAdd(player.position, vectorScale(player.velocity, deltaTime * 60));
+      
+      if (remotePlayer.serverPosition && remotePlayer.interpolationAlpha !== undefined) {
+        const INTERPOLATION_SPEED = 8;
+        remotePlayer.interpolationAlpha = Math.min(1, remotePlayer.interpolationAlpha + deltaTime * INTERPOLATION_SPEED);
+        
+        const startPos = player.position;
+        const targetPos = remotePlayer.serverPosition;
+        const alpha = this.smoothStep(remotePlayer.interpolationAlpha);
+        
+        player.position = {
+          x: startPos.x + (targetPos.x - startPos.x) * alpha,
+          y: startPos.y + (targetPos.y - startPos.y) * alpha
+        };
+        
+        if (remotePlayer.serverVelocity) {
+          player.velocity = remotePlayer.serverVelocity;
+        }
+        
+        if (remotePlayer.interpolationAlpha >= 1 && remotePlayer.serverVelocity) {
+          const extrapolation = vectorScale(remotePlayer.serverVelocity, deltaTime * 60);
+          player.position = vectorAdd(player.position, extrapolation);
+          remotePlayer.serverPosition = player.position;
+        }
+      } else {
+        player.position = vectorAdd(player.position, vectorScale(player.velocity, deltaTime * 60));
+      }
       
       const obstacles = this.getObstacles();
       obstacles.forEach(obstacle => {
@@ -3210,6 +3309,10 @@ export class GameEngine {
         }
       });
     });
+  }
+
+  private smoothStep(t: number): number {
+    return t * t * (3 - 2 * t);
   }
 
   removeRemotePlayer(playerId: string): void {
