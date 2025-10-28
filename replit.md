@@ -68,6 +68,12 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 28, 2025: Multiplayer Sync & UI Overhaul
+  - **Position Synchronization Fix**: Implemented immediate position sync messages (`PlayerPositionSync`) for spawning, respawning, and teleporting events to prevent position mismatch between host and remote player views
+  - **Death Detection Fix**: Added centralized `checkPlayerDeath()` method called after all damage sources (environmental hazards, projectiles, enemy collisions) to prevent negative health survival bug
+  - **Destiny 2-Style Inventory UI**: Complete redesign with hover-based stowed weapon display and weapon swapping via slot selection
+  - **Melee Weapon Stats**: Added range stat to all weapon cards, stance (Form) display, and description text for melee weapons
+
 - October 28, 2025: PvP and Melee Combat Overhaul
   - **PvP Toggle System**: Added multiplayer PvP toggle allowing players to damage each other when enabled
   - **Projectile PvP System**: Implemented playerId tracking on projectiles to enable fair cross-player damage
