@@ -53,6 +53,11 @@ import { CraftingSystem } from './CraftingSystem';
 import { VoidSubdivider, createVoidSubdivider, updateVoidSubdivider, checkVoidSubdividerCollision } from './VoidSubdivider';
 import { MeleeWeaponRenderer } from './MeleeWeaponRenderer';
 import { MELEE_FORMS, getFormForWeapon, MeleeForm } from './MeleeWeaponForms';
+import { MinibossSystem } from './MinibossSystem';
+import { MinibossSpawnManager } from './MinibossSpawnManager';
+import { MinibossUpdateSystem } from './MinibossUpdateSystem';
+import { MinibossLootSystem } from './MinibossLootSystem';
+import type { MinibossSubtype } from '../types/game';
 
 export class GameEngine {
   private gameState: GameState;
@@ -83,6 +88,11 @@ export class GameEngine {
   private voidGapBossSpawned: Set<string> = new Set();
   private activeOminousTendril: { featureId: string; canInteract: boolean } | null = null;
   private meleeWeaponRenderer: MeleeWeaponRenderer;
+  private minibossSystem: MinibossSystem;
+  private minibossSpawnManager: MinibossSpawnManager;
+  private minibossUpdateSystem: MinibossUpdateSystem;
+  private minibossLootSystem: MinibossLootSystem;
+  private minibossSpawnCheckTimer: number = 0;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -96,6 +106,10 @@ export class GameEngine {
     this.modifierSystem = new EnemyModifierSystem();
     this.craftingSystem = new CraftingSystem();
     this.meleeWeaponRenderer = new MeleeWeaponRenderer();
+    this.minibossSystem = new MinibossSystem();
+    this.minibossSpawnManager = new MinibossSpawnManager(this.minibossSystem);
+    this.minibossUpdateSystem = new MinibossUpdateSystem();
+    this.minibossLootSystem = new MinibossLootSystem();
     this.gameState = this.createInitialState();
     this.biomeManager.setWorldGenerator(this.worldGenerator);
 
@@ -365,6 +379,8 @@ export class GameEngine {
       (pos, count, color, lifetime) => this.createParticles(pos, count, color, lifetime)
     );
     this.updateEnemies(dt);
+    this.updateMinibosses(dt);
+    this.checkMinibossSpawns(dt);
     this.updateVoidSubdividerBoss(dt);
     this.checkVoidSubdividerSpawn();
     this.modifierSystem.updateModifiers(
@@ -802,14 +818,22 @@ export class GameEngine {
         if (enemy.health <= 0) {
           let scoreValue = 10;
           if (enemy.type === 'boss') scoreValue = 500;
+          if (enemy.type === 'miniboss') scoreValue = 1000;
           if (this.modifierSystem.isModifiedEnemy(enemy)) scoreValue = 150;
 
           this.gameState.score += scoreValue;
-          this.spawnCurrency(enemy.position, enemy.currencyDrop);
+          
+          if (enemy.type === 'miniboss') {
+            this.handleMinibossDeath(enemy);
+          } else {
+            this.spawnCurrency(enemy.position, enemy.currencyDrop);
+          }
+          
           this.worldGenerator.registerEnemyKill(enemy.id);
 
           let particleCount = 20;
           if (enemy.type === 'boss') particleCount = 50;
+          if (enemy.type === 'miniboss') particleCount = 100;
           if (this.modifierSystem.isModifiedEnemy(enemy)) particleCount = 40;
 
           this.createParticles(enemy.position, particleCount, enemy.color, 0.6);
@@ -1027,14 +1051,22 @@ export class GameEngine {
           if (enemy.health <= 0) {
             let scoreValue = 10;
             if (enemy.type === 'boss') scoreValue = 500;
+            if (enemy.type === 'miniboss') scoreValue = 1000;
             if (this.modifierSystem.isModifiedEnemy(enemy)) scoreValue = 150;
 
             this.gameState.score += scoreValue;
-            this.spawnCurrency(enemy.position, enemy.currencyDrop);
+            
+            if (enemy.type === 'miniboss') {
+              this.handleMinibossDeath(enemy);
+            } else {
+              this.spawnCurrency(enemy.position, enemy.currencyDrop);
+            }
+            
             this.worldGenerator.registerEnemyKill(enemy.id);
 
             let particleCount = 20;
             if (enemy.type === 'boss') particleCount = 50;
+            if (enemy.type === 'miniboss') particleCount = 100;
             if (this.modifierSystem.isModifiedEnemy(enemy)) particleCount = 40;
 
             this.createParticles(enemy.position, particleCount, enemy.color, 0.6);
@@ -1776,6 +1808,88 @@ export class GameEngine {
     return nearest;
   }
 
+  private updateMinibosses(dt: number): void {
+    const player = this.gameState.player;
+    const minibosses = this.gameState.enemies.filter(e => e.type === 'miniboss');
+
+    minibosses.forEach(miniboss => {
+      if (miniboss.health <= 0) return;
+
+      const context = {
+        createProjectile: (proj: any) => this.gameState.projectiles.push(proj),
+        createParticles: (pos, count, color, lifetime) => this.createParticles(pos, count, color, lifetime),
+        damagePlayer: (damage) => {
+          player.health -= damage;
+          this.checkPlayerDeath();
+        },
+        findNearestPlayer: (pos) => this.findNearestPlayer(pos).position,
+        getAllPlayers: () => [this.gameState.player, ...this.gameState.remotePlayers.map(rp => rp.player)]
+      };
+
+      this.minibossUpdateSystem.update(miniboss, player.position, dt, context);
+
+      const whirlpoolEffect = this.minibossUpdateSystem.applyWhirlpoolEffect(miniboss, player.position, dt);
+      if (whirlpoolEffect) {
+        player.position = vectorAdd(player.position, whirlpoolEffect);
+      }
+    });
+  }
+
+  private checkMinibossSpawns(dt: number): void {
+    this.minibossSpawnCheckTimer += dt;
+
+    if (this.minibossSpawnCheckTimer < 5.0) {
+      return;
+    }
+
+    this.minibossSpawnCheckTimer = 0;
+
+    const currentBiome = this.biomeManager.getCurrentBiome();
+    if (currentBiome) {
+      this.minibossSpawnManager.updateCurrentBiome(currentBiome.id);
+    }
+
+    const distanceFromOrigin = Math.sqrt(
+      this.gameState.player.position.x * this.gameState.player.position.x +
+      this.gameState.player.position.y * this.gameState.player.position.y
+    );
+    const approximateWave = Math.max(1, Math.floor(distanceFromOrigin / 500));
+
+    const spawnedMiniboss = this.minibossSpawnManager.checkAndSpawnMiniboss(
+      this.gameState.player.position,
+      this.biomeFeatures,
+      approximateWave,
+      (subtype, position) => this.minibossSystem.createMiniboss(subtype, position)
+    );
+
+    if (spawnedMiniboss) {
+      this.gameState.enemies.push(spawnedMiniboss);
+      this.createParticles(spawnedMiniboss.position, 80, spawnedMiniboss.color, 1.2);
+      
+      const name = this.minibossLootSystem.getMinibossDisplayName(spawnedMiniboss.minibossSubtype!);
+      console.log(`Miniboss spawned: ${name}`);
+    }
+  }
+
+  private handleMinibossDeath(enemy: Enemy): void {
+    if (enemy.type !== 'miniboss' || !enemy.minibossSubtype) return;
+
+    const loot = this.minibossLootSystem.generateLoot(enemy);
+    if (!loot) return;
+
+    this.minibossLootSystem.spawnLootDrops(
+      loot,
+      (pos, amount) => this.spawnCurrency(pos, amount),
+      (pos, type, amount) => this.spawnResourceDrop(pos, type, amount),
+      (pos) => this.spawnWeaponDrop(pos)
+    );
+
+    this.minibossSpawnManager.onMinibossDefeated(enemy.id, enemy.minibossSubtype);
+
+    const name = this.minibossLootSystem.getMinibossDisplayName(enemy.minibossSubtype);
+    console.log(`Miniboss defeated: ${name}`);
+  }
+
   private raycastObstacle(start: { x: number; y: number }, end: { x: number; y: number }, obstacle: Obstacle): { x: number; y: number } | null {
     if (obstacle.shape === 'circle') {
       const radius = obstacle.size.x / 2;
@@ -2207,14 +2321,22 @@ export class GameEngine {
               if (enemy.health <= 0) {
                 let scoreValue = 10;
                 if (enemy.type === 'boss') scoreValue = 500;
+                if (enemy.type === 'miniboss') scoreValue = 1000;
                 if (this.modifierSystem.isModifiedEnemy(enemy)) scoreValue = 150;
 
                 this.gameState.score += scoreValue;
-                this.spawnCurrency(enemy.position, enemy.currencyDrop);
+                
+                if (enemy.type === 'miniboss') {
+                  this.handleMinibossDeath(enemy);
+                } else {
+                  this.spawnCurrency(enemy.position, enemy.currencyDrop);
+                }
+                
                 this.worldGenerator.registerEnemyKill(enemy.id);
 
                 let particleCount = 20;
                 if (enemy.type === 'boss') particleCount = 50;
+                if (enemy.type === 'miniboss') particleCount = 100;
                 if (this.modifierSystem.isModifiedEnemy(enemy)) particleCount = 40;
 
                 this.createParticles(enemy.position, particleCount, enemy.color, 0.6);

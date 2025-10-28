@@ -72,9 +72,20 @@ export interface Player extends Entity {
   consumables: Consumable[];
 }
 
+export type MinibossSubtype = 
+  | 'angulodon'
+  | 'cryostag_vanguard'
+  | 'pyroclast_behemoth'
+  | 'mirelurker_matron'
+  | 'prism_guardian'
+  | 'null_siren'
+  | 'solstice_warden'
+  | 'rift_revenant';
+
 export interface Enemy extends Entity {
-  type: 'grunt' | 'speedy' | 'tank' | 'sniper' | 'artillery' | 'burst' | 'dasher' | 'weaver' | 'laser' | 'boss' | 'orbiter' | 'fragmenter' | 'pulsar' | 'spiraler' | 'replicator' | 'vortex';
+  type: 'grunt' | 'speedy' | 'tank' | 'sniper' | 'artillery' | 'burst' | 'dasher' | 'weaver' | 'laser' | 'boss' | 'miniboss' | 'orbiter' | 'fragmenter' | 'pulsar' | 'spiraler' | 'replicator' | 'vortex';
   bossType?: 'void_subdivider';
+  minibossSubtype?: MinibossSubtype;
   health: number;
   maxHealth: number;
   damage: number;
@@ -104,6 +115,20 @@ export interface Enemy extends Entity {
   replicateCount?: number;
   vortexPullStrength?: number;
   vortexRadius?: number;
+  phase?: string;
+  behaviorState?: string;
+  phaseTimer?: number;
+  attackQueueTimer?: number;
+  nextAttack?: string;
+  isSubmerged?: boolean;
+  shieldActive?: boolean;
+  shieldHealth?: number;
+  cloneIds?: string[];
+  pullRadius?: number;
+  telegraphTimer?: number;
+  whirlpoolAngle?: number;
+  jaws?: { isOpen: boolean; biteTimer: number; grabbedPlayerId?: string };
+  segments?: Array<{ position: Vector2; rotation: number; size: number }>;
 }
 
 export interface Projectile extends Entity {
