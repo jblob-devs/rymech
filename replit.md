@@ -19,13 +19,14 @@ MechaRyan is a top-down action survival game built with React, TypeScript, and V
 
 ## Key Features
 - Real-time game engine with canvas rendering
-- Multiplayer support with smooth position interpolation
+- Multiplayer support with smooth position interpolation and PvP toggle
 - Weapon system with perks and upgrades
-- Advanced melee combat system with visual rendering
-- Melee weapon Forms system (Rapid, Heavy, Flowing, Assassin, Berserker, Guardian, Void)
+- Advanced melee combat system with visual effects and movement mechanics
+- Randomizable melee weapon Forms system (all Forms can roll on any melee weapon)
+- Melee weapon Forms with player movement (dash, lunge effects)
 - Projectile deflection mechanics for melee weapons
 - Crafting and inventory management
-- Multiple biomes with unique features
+- Multiple biomes with unique features and clustered resource spawning
 - Wave-based enemy system
 - Admin mode for testing
 - Optimized touch controls for mobile devices
@@ -67,6 +68,21 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 28, 2025: PvP and Melee Combat Overhaul
+  - **PvP Toggle System**: Added multiplayer PvP toggle allowing players to damage each other when enabled
+  - **Projectile PvP System**: Implemented playerId tracking on projectiles to enable fair cross-player damage
+  - **Melee Visual Improvements**: 
+    - Removed sword visual rendering for cleaner aesthetic
+    - Added crosshair indicator showing melee weapon range
+    - Made swipe trails thinner (lineWidth reduced from 20 to 6) with enhanced particle effects
+  - **Melee Combat Redesign**:
+    - Increased all swing durations by 2.5x for more deliberate, tactical gameplay
+    - Added player movement mechanics to Forms (dash forward, lunge effects)
+    - Made Forms randomizable - any melee weapon can roll any Form as a perk
+  - **World Generation Improvements**:
+    - Enhanced pearl spawning to cluster near coral reef features (95% spawn rate, 20-70 unit radius)
+    - Improved cryo kelp spawning near glacial spires (95% spawn rate, 30-90 unit radius)
+
 - October 28, 2025: Multiplayer and Melee Combat Expansion
   - Fixed multiplayer position desync with smooth interpolation system
   - Optimized touch controls with ref-based event handlers
