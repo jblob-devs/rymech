@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Users, Copy, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, Copy, Check, X, Navigation } from 'lucide-react';
+import { RemotePlayer } from '../types/game';
 
 interface ConnectionMenuProps {
   isOpen: boolean;
@@ -10,6 +11,9 @@ interface ConnectionMenuProps {
   connectionCount: number;
   peerId: string;
   role: 'host' | 'client' | 'none';
+  remotePlayers?: RemotePlayer[];
+  onTeleportToPlayer?: (peerId: string) => void;
+  onTeleportPlayerToMe?: (peerId: string) => void;
 }
 
 export default function ConnectionMenu({
@@ -21,12 +25,28 @@ export default function ConnectionMenu({
   connectionCount,
   peerId,
   role,
+  remotePlayers = [],
+  onTeleportToPlayer,
+  onTeleportPlayerToMe,
 }: ConnectionMenuProps) {
   const [joinId, setJoinId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('mp_username');
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+  }, []);
+
+  const handleUsernameChange = (newUsername: string) => {
+    setUsername(newUsername);
+    localStorage.setItem('mp_username', newUsername);
+  };
 
   if (!isOpen) return null;
 
@@ -103,6 +123,18 @@ export default function ConnectionMenu({
               )}
             </div>
 
+            <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
+              <p className="text-slate-400 text-xs mb-2">Your Username:</p>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => handleUsernameChange(e.target.value)}
+                placeholder="Enter your username"
+                maxLength={20}
+                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-cyan-300 text-sm"
+              />
+            </div>
+
             {role === 'host' && peerId && (
               <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
                 <p className="text-slate-400 text-xs mb-2">Share this ID with your friend:</p>
@@ -119,6 +151,43 @@ export default function ConnectionMenu({
                   >
                     {copied ? <Check size={20} /> : <Copy size={20} />}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {remotePlayers.length > 0 && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded p-4">
+                <p className="text-slate-400 text-xs mb-3">Connected Players:</p>
+                <div className="space-y-2">
+                  {remotePlayers.map((player) => (
+                    <div key={player.peerId} className="flex items-center justify-between bg-slate-900/50 rounded px-3 py-2">
+                      <span className="text-cyan-300 text-sm font-medium">
+                        {player.username || 'Player'}
+                      </span>
+                      <div className="flex gap-1">
+                        {onTeleportToPlayer && (
+                          <button
+                            onClick={() => onTeleportToPlayer(player.peerId)}
+                            className="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs flex items-center gap-1 transition-colors"
+                            title="Teleport to player"
+                          >
+                            <Navigation size={14} />
+                            To
+                          </button>
+                        )}
+                        {role === 'host' && onTeleportPlayerToMe && (
+                          <button
+                            onClick={() => onTeleportPlayerToMe(player.peerId)}
+                            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs flex items-center gap-1 transition-colors"
+                            title="Teleport player to you"
+                          >
+                            <Navigation size={14} className="rotate-180" />
+                            Here
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

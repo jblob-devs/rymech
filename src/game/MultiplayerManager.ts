@@ -9,6 +9,8 @@ export interface PlayerInput {
   mouseDown: boolean;
   timestamp: number;
   playerId: string;
+  activeWeaponIndex?: number;
+  username?: string;
 }
 
 export interface GameStateUpdate {

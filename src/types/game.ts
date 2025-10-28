@@ -303,6 +303,7 @@ export interface RemotePlayer {
   peerId: string;
   player: Player;
   lastUpdate: number;
+  username?: string;
 }
 
 export interface GameState {

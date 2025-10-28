@@ -3057,12 +3057,21 @@ export class GameEngine {
         peerId: playerId,
         player: this.createRemotePlayer(playerId),
         lastUpdate: Date.now(),
+        username: input.username || 'Player',
       };
       this.gameState.remotePlayers.push(remotePlayer);
     }
 
+    if (input.username && remotePlayer.username !== input.username) {
+      remotePlayer.username = input.username;
+    }
+
     const keys = new Set(input.keys);
     const player = remotePlayer.player;
+    
+    if (input.activeWeaponIndex !== undefined && input.activeWeaponIndex !== player.activeWeaponIndex) {
+      player.activeWeaponIndex = Math.min(input.activeWeaponIndex, player.equippedWeapons.length - 1);
+    }
     
     const moveDir = createVector();
     if (keys.has('w') || keys.has('arrowup')) moveDir.y -= 1;
@@ -3186,7 +3195,7 @@ export class GameEngine {
   updateRemotePlayerPositions(deltaTime: number): void {
     this.gameState.remotePlayers.forEach(remotePlayer => {
       const player = remotePlayer.player;
-      player.position = vectorAdd(player.position, vectorScale(player.velocity, deltaTime));
+      player.position = vectorAdd(player.position, vectorScale(player.velocity, deltaTime * 60));
       
       const obstacles = this.getObstacles();
       obstacles.forEach(obstacle => {
@@ -3205,6 +3214,21 @@ export class GameEngine {
 
   removeRemotePlayer(playerId: string): void {
     this.gameState.remotePlayers = this.gameState.remotePlayers.filter(rp => rp.peerId !== playerId);
+  }
+
+  teleportToPlayer(targetPeerId: string): void {
+    const targetPlayer = this.gameState.remotePlayers.find(rp => rp.peerId === targetPeerId);
+    if (targetPlayer) {
+      this.gameState.player.position = { ...targetPlayer.player.position };
+      this.loadChunksAroundPlayer();
+    }
+  }
+
+  teleportRemotePlayerToMe(remotePeerId: string): void {
+    const remotePlayer = this.gameState.remotePlayers.find(rp => rp.peerId === remotePeerId);
+    if (remotePlayer) {
+      remotePlayer.player.position = { ...this.gameState.player.position };
+    }
   }
 
   getKeys(): Set<string> {

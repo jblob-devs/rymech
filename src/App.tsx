@@ -92,6 +92,9 @@ function App() {
           const keys = Array.from(gameEngineRef.current.getKeys());
           const mousePos = gameEngineRef.current.getMousePos();
           const mouseDown = gameEngineRef.current.getMouseDown();
+          const state = gameEngineRef.current.getState();
+          const activeWeaponIndex = state.player.activeWeaponIndex;
+          const username = localStorage.getItem('mp_username') || 'Player';
           
           multiplayerManager.sendPlayerInput({
             keys,
@@ -99,6 +102,8 @@ function App() {
             mouseDown,
             timestamp: Date.now(),
             playerId: multiplayerManager.getPeerId(),
+            activeWeaponIndex,
+            username,
           });
         }
       } else {
@@ -528,6 +533,9 @@ function App() {
         connectionCount={connectionCount}
         peerId={peerId}
         role={multiplayerRole}
+        remotePlayers={gameState.remotePlayers}
+        onTeleportToPlayer={(targetPeerId) => gameEngineRef.current?.teleportToPlayer(targetPeerId)}
+        onTeleportPlayerToMe={(targetPeerId) => gameEngineRef.current?.teleportRemotePlayerToMe(targetPeerId)}
       />
     </div>
   );
