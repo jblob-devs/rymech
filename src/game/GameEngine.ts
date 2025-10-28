@@ -1017,8 +1017,9 @@ export class GameEngine {
     this.gameState.enemies.forEach((enemy) => {
       if (enemy.health <= 0) return;
 
-      const dirToPlayer = vectorSubtract(player.position, enemy.position);
-      const distance = vectorDistance(enemy.position, player.position);
+      const targetPlayer = this.findNearestPlayer(enemy.position);
+      const dirToPlayer = vectorSubtract(targetPlayer.position, enemy.position);
+      const distance = vectorDistance(enemy.position, targetPlayer.position);
 
       const deaggroRadius = (enemy.detectionRadius || 100) * 2.5;
       if (enemy.isAggro && distance > deaggroRadius) {
@@ -1068,7 +1069,7 @@ export class GameEngine {
 
           const directionToPlayer = findPathAroundObstacles(
             enemy.position,
-            player.position,
+            targetPlayer.position,
             this.getPathfindingObstacles(),
             enemy.size / 2
           );
@@ -1098,7 +1099,7 @@ export class GameEngine {
           if (distance > 250) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1108,7 +1109,7 @@ export class GameEngine {
 
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
-              this.enemyFireLaser(enemy, player.position);
+              this.enemyFireLaser(enemy, targetPlayer.position);
               enemy.attackCooldown = 1.5;
             }
           }
@@ -1130,7 +1131,7 @@ export class GameEngine {
           if (distance > 300) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1140,7 +1141,7 @@ export class GameEngine {
 
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
-              this.enemyFireProjectile(enemy, player.position, 1, 8);
+              this.enemyFireProjectile(enemy, targetPlayer.position, 1, 8);
               enemy.attackCooldown = 2;
             }
           }
@@ -1156,7 +1157,7 @@ export class GameEngine {
           if (distance > 350) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1166,7 +1167,7 @@ export class GameEngine {
 
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
-              this.enemyFireProjectile(enemy, player.position, 1, 6, 0.15);
+              this.enemyFireProjectile(enemy, targetPlayer.position, 1, 6, 0.15);
               enemy.attackCooldown = 3;
             }
           }
@@ -1182,7 +1183,7 @@ export class GameEngine {
           if (distance > 250) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1195,7 +1196,7 @@ export class GameEngine {
               for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
                   if (this.gameState.enemies.includes(enemy)) {
-                    this.enemyFireProjectile(enemy, player.position, 1, 10);
+                    this.enemyFireProjectile(enemy, targetPlayer.position, 1, 10);
                   }
                 }, i * 150);
               }
@@ -1214,7 +1215,7 @@ export class GameEngine {
       } else if (enemy.type === 'boss') {
         const directionToPlayer = findPathAroundObstacles(
           enemy.position,
-          player.position,
+          targetPlayer.position,
           this.getPathfindingObstacles(),
           enemy.size / 2
         );
@@ -1242,7 +1243,7 @@ export class GameEngine {
           if (distance > 280) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1284,7 +1285,7 @@ export class GameEngine {
           if (distance > 300) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1294,15 +1295,16 @@ export class GameEngine {
 
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
-              this.enemyFireProjectile(enemy, player.position, 1, 10);
+              this.enemyFireProjectile(enemy, targetPlayer.position, 1, 10);
               setTimeout(() => {
                 if (this.gameState.enemies.includes(enemy)) {
+                  const fragmentTarget = this.findNearestPlayer(enemy.position);
                   const fragmentCount = 4;
                   for (let i = 0; i < fragmentCount; i++) {
                     const angle = (Math.PI * 2 * i) / fragmentCount;
                     const targetPos = {
-                      x: player.position.x + Math.cos(angle) * 80,
-                      y: player.position.y + Math.sin(angle) * 80,
+                      x: fragmentTarget.position.x + Math.cos(angle) * 80,
+                      y: fragmentTarget.position.y + Math.sin(angle) * 80,
                     };
                     this.enemyFireProjectile(enemy, targetPos, 1, 7);
                   }
@@ -1323,7 +1325,7 @@ export class GameEngine {
           if (distance > 350) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1360,8 +1362,8 @@ export class GameEngine {
           enemy.spiralAngle = (enemy.spiralAngle || 0) + dt * 2;
 
           const spiralRadius = 150 + Math.sin(enemy.spiralPhase) * 50;
-          const targetX = player.position.x + Math.cos(enemy.spiralAngle) * spiralRadius;
-          const targetY = player.position.y + Math.sin(enemy.spiralAngle) * spiralRadius;
+          const targetX = targetPlayer.position.x + Math.cos(enemy.spiralAngle) * spiralRadius;
+          const targetY = targetPlayer.position.y + Math.sin(enemy.spiralAngle) * spiralRadius;
           const targetPos = { x: targetX, y: targetY };
 
           const directionToTarget = findPathAroundObstacles(
@@ -1374,7 +1376,7 @@ export class GameEngine {
 
           enemy.attackCooldown -= dt;
           if (enemy.attackCooldown <= 0) {
-            this.enemyFireProjectile(enemy, player.position, 1, 8);
+            this.enemyFireProjectile(enemy, targetPlayer.position, 1, 8);
             enemy.attackCooldown = 1.2;
           }
         } else {
@@ -1394,7 +1396,7 @@ export class GameEngine {
         if (enemy.isAggro) {
           const directionToPlayer = findPathAroundObstacles(
             enemy.position,
-            player.position,
+            targetPlayer.position,
             this.getPathfindingObstacles(),
             enemy.size / 2
           );
@@ -1431,7 +1433,7 @@ export class GameEngine {
 
           enemy.attackCooldown -= dt;
           if (enemy.attackCooldown <= 0) {
-            this.enemyFireProjectile(enemy, player.position, 1, 7);
+            this.enemyFireProjectile(enemy, targetPlayer.position, 1, 7);
             enemy.attackCooldown = 1.8;
           }
         } else {
@@ -1452,7 +1454,7 @@ export class GameEngine {
           if (distance > 250) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1496,7 +1498,7 @@ export class GameEngine {
           } else {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
-              player.position,
+              targetPlayer.position,
               this.obstacles,
               enemy.size / 2
             );
@@ -1624,6 +1626,23 @@ export class GameEngine {
     return nearest;
   }
 
+  private findNearestPlayer(position: { x: number; y: number }): Player {
+    const allPlayers = [this.gameState.player, ...this.gameState.remotePlayers.map(rp => rp.player)];
+    
+    let nearest = allPlayers[0];
+    let minDist = vectorDistance(position, nearest.position);
+
+    for (let i = 1; i < allPlayers.length; i++) {
+      const dist = vectorDistance(position, allPlayers[i].position);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = allPlayers[i];
+      }
+    }
+
+    return nearest;
+  }
+
   private findNearestEnemyExcluding(position: { x: number; y: number }, excludeId: string): Enemy | null {
     let nearest: Enemy | null = null;
     let minDist = Infinity;
@@ -1698,12 +1717,22 @@ export class GameEngine {
 
   private updateProjectiles(dt: number): void {
     const player = this.gameState.player;
+    const allPlayers = [player, ...this.gameState.remotePlayers.map(rp => rp.player)];
 
     this.gameState.projectiles = this.gameState.projectiles.filter(
       (projectile) => {
-        const distFromPlayer = vectorDistance(projectile.position, player.position);
         const screenEdgeDistance = Math.max(CANVAS_WIDTH, CANVAS_HEIGHT);
-        if (distFromPlayer > screenEdgeDistance) {
+        
+        let shouldKeep = false;
+        for (const p of allPlayers) {
+          const distFromPlayer = vectorDistance(projectile.position, p.position);
+          if (distFromPlayer <= screenEdgeDistance) {
+            shouldKeep = true;
+            break;
+          }
+        }
+        
+        if (!shouldKeep) {
           return false;
         }
 
@@ -3009,7 +3038,6 @@ export class GameEngine {
     if (state.chests) this.chests = state.chests;
     if (state.weaponDrops) this.gameState.weaponDrops = state.weaponDrops;
     if (state.damageNumbers) this.gameState.damageNumbers = state.damageNumbers;
-    if (state.currentBiomeName) this.gameState.currentBiomeName = state.currentBiomeName;
     
     if (state.score !== undefined) this.gameState.score = state.score;
     if (state.isPaused !== undefined) this.gameState.isPaused = state.isPaused;
@@ -3055,10 +3083,19 @@ export class GameEngine {
       player.rotation = Math.atan2(dy, dx);
     }
 
+    if (input.mouseDown && player.equippedWeapons.length > 0) {
+      const weapon = player.equippedWeapons[player.activeWeaponIndex];
+      if (weapon && weapon.cooldown <= 0) {
+        this.fireWeaponForRemotePlayer(player, weapon);
+      }
+    }
+
     remotePlayer.lastUpdate = Date.now();
   }
 
   private createRemotePlayer(playerId: string): import('../types/game').Player {
+    const equippedWeapons = INITIAL_WEAPONS.map(weapon => ({ ...weapon, perks: [] }));
+    
     return {
       id: `remote_${playerId}`,
       position: createVector(CANVAS_WIDTH / 2 + Math.random() * 200 - 100, CANVAS_HEIGHT / 2 + Math.random() * 200 - 100),
@@ -3072,7 +3109,7 @@ export class GameEngine {
       dashDuration: PLAYER_DASH_DURATION,
       isDashing: false,
       currency: 0,
-      equippedWeapons: [],
+      equippedWeapons,
       activeWeaponIndex: 0,
       portalCooldown: 0,
       isGrappling: false,
@@ -3101,6 +3138,51 @@ export class GameEngine {
     };
   }
 
+  private fireWeaponForRemotePlayer(player: Player, weapon: Weapon): void {
+    const angle = player.rotation;
+
+    const MAX_PROJECTILES = 300;
+    if (this.gameState.projectiles.length >= MAX_PROJECTILES) {
+      return;
+    }
+
+    for (let i = 0; i < weapon.projectileCount; i++) {
+      const spreadOffset =
+        (i - (weapon.projectileCount - 1) / 2) * weapon.spread;
+      const projectileAngle = angle + spreadOffset;
+
+      const velocity = vectorFromAngle(projectileAngle, weapon.projectileSpeed);
+
+      const projectile: Projectile = {
+        id: generateId(),
+        position: { ...player.position },
+        velocity,
+        damage: weapon.damage,
+        size: weapon.projectileSize,
+        color: weapon.color,
+        owner: 'player',
+        piercing: weapon.piercing || false,
+        piercingCount: weapon.piercing ? 3 : 0,
+        lifetime: 3,
+        homing: weapon.homing,
+        homingStrength: weapon.homingStrength,
+        explosive: weapon.explosive,
+        explosionRadius: weapon.explosionRadius,
+        ricochet: weapon.ricochet,
+        ricochetCount: weapon.ricochet ? 2 : 0,
+        maxRange: weapon.maxRange || MAX_VISIBLE_RANGE,
+        travelDistance: 0,
+        weaponType: weapon.type,
+        rotation: 0,
+        wallPierce: weapon.wallPierce || false,
+      };
+
+      this.gameState.projectiles.push(projectile);
+    }
+
+    weapon.cooldown = weapon.fireRate;
+  }
+
   updateRemotePlayerPositions(deltaTime: number): void {
     this.gameState.remotePlayers.forEach(remotePlayer => {
       const player = remotePlayer.player;
@@ -3110,6 +3192,12 @@ export class GameEngine {
       obstacles.forEach(obstacle => {
         if (checkEntityObstacleCollision(player, obstacle)) {
           resolveEntityObstacleCollision(player, obstacle);
+        }
+      });
+
+      player.equippedWeapons.forEach(weapon => {
+        if (weapon.cooldown > 0) {
+          weapon.cooldown -= deltaTime;
         }
       });
     });
