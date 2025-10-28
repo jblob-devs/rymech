@@ -1444,6 +1444,7 @@ export default function GameCanvas({
       ctx.textAlign = 'center';
       ctx.fillText('BOSS', screenPos.x, screenPos.y - enemy.size / 2 - 20);
       ctx.restore();
+    }
   };
 
   const drawDrone = (ctx: CanvasRenderingContext2D, drone: Drone, camera: Camera) => {
