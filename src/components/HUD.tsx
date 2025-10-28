@@ -140,9 +140,9 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
         </div>
       </div>
       {interactionText && (
-        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 pointer-events-none select-none">
-          <div className="bg-purple-900/90 backdrop-blur-sm border-2 border-purple-500 rounded-lg px-8 py-4 shadow-2xl shadow-purple-500/50 animate-pulse">
-            <p className="text-2xl font-bold text-white text-center tracking-wide">
+        <div className="absolute bottom-8 left-4 pointer-events-none select-none">
+          <div className="bg-slate-900/60 backdrop-blur-sm border border-cyan-500/20 rounded px-3 py-1.5 shadow-lg">
+            <p className="text-xs text-slate-300">
               {interactionText}
             </p>
           </div>

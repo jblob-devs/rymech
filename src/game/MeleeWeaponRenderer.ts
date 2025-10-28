@@ -53,24 +53,63 @@ export class MeleeWeaponRenderer {
     ctx.save();
     ctx.rotate(angle);
 
+    const centerX = range * 0.7;
+    const size = 10;
+    
+    // Draw geometric diamond shape
     ctx.strokeStyle = weapon.color + '80';
     ctx.lineWidth = 2;
-    ctx.setLineDash([3, 3]);
-
+    
+    // Outer diamond
     ctx.beginPath();
-    ctx.arc(range * 0.7, 0, 8, 0, Math.PI * 2);
+    ctx.moveTo(centerX, -size);
+    ctx.lineTo(centerX + size, 0);
+    ctx.lineTo(centerX, size);
+    ctx.lineTo(centerX - size, 0);
+    ctx.closePath();
     ctx.stroke();
-
-    ctx.setLineDash([]);
+    
+    // Inner square
+    const innerSize = size * 0.4;
     ctx.beginPath();
-    ctx.moveTo(range * 0.7 - 12, 0);
-    ctx.lineTo(range * 0.7 - 4, 0);
-    ctx.moveTo(range * 0.7 + 4, 0);
-    ctx.lineTo(range * 0.7 + 12, 0);
-    ctx.moveTo(range * 0.7, -12);
-    ctx.lineTo(range * 0.7, -4);
-    ctx.moveTo(range * 0.7, 4);
-    ctx.lineTo(range * 0.7, 12);
+    ctx.rect(centerX - innerSize, -innerSize, innerSize * 2, innerSize * 2);
+    ctx.stroke();
+    
+    // Corner markers
+    const markerDist = size * 1.4;
+    const markerSize = 3;
+    ctx.lineWidth = 2;
+    
+    // Top-right corner
+    ctx.beginPath();
+    ctx.moveTo(centerX + markerDist, -markerDist);
+    ctx.lineTo(centerX + markerDist, -markerDist + markerSize);
+    ctx.moveTo(centerX + markerDist, -markerDist);
+    ctx.lineTo(centerX + markerDist - markerSize, -markerDist);
+    ctx.stroke();
+    
+    // Top-left corner
+    ctx.beginPath();
+    ctx.moveTo(centerX - markerDist, -markerDist);
+    ctx.lineTo(centerX - markerDist, -markerDist + markerSize);
+    ctx.moveTo(centerX - markerDist, -markerDist);
+    ctx.lineTo(centerX - markerDist + markerSize, -markerDist);
+    ctx.stroke();
+    
+    // Bottom-right corner
+    ctx.beginPath();
+    ctx.moveTo(centerX + markerDist, markerDist);
+    ctx.lineTo(centerX + markerDist, markerDist - markerSize);
+    ctx.moveTo(centerX + markerDist, markerDist);
+    ctx.lineTo(centerX + markerDist - markerSize, markerDist);
+    ctx.stroke();
+    
+    // Bottom-left corner
+    ctx.beginPath();
+    ctx.moveTo(centerX - markerDist, markerDist);
+    ctx.lineTo(centerX - markerDist, markerDist - markerSize);
+    ctx.moveTo(centerX - markerDist, markerDist);
+    ctx.lineTo(centerX - markerDist + markerSize, markerDist);
     ctx.stroke();
 
     ctx.restore();

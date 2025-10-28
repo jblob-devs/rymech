@@ -322,13 +322,15 @@ export class GameEngine {
   }
 
   update(deltaTime: number): void {
-    // Only respect isPaused for local player, not in multiplayer
-    // In multiplayer, each client manages their own pause independently
     if (this.gameState.isGameOver) return;
 
     const dt = Math.min(deltaTime, 0.05);
 
-    this.updatePlayer(dt);
+    // In multiplayer, pause only affects local player input, not world simulation
+    // This allows host to pause while clients continue playing
+    if (!this.gameState.isPaused) {
+      this.updatePlayer(dt);
+    }
     this.camera.follow(this.gameState.player.position);
     this.camera.update();
     this.biomeManager.updateBiome(this.gameState.player.position, (biome: BiomeConfig) => {
@@ -2424,14 +2426,18 @@ export class GameEngine {
 
     const dropPos = this.voidSubdivider.position;
 
-    this.gameState.player.resources.voidCore += 1;
-    this.gameState.player.currency += this.voidSubdivider.currencyDrop;
+    // Award unique boss resources
+    this.gameState.player.resources.voidCore += 2 + Math.floor(Math.random() * 2);
+    this.gameState.player.currency += this.voidSubdivider.currencyDrop * 2;
 
+    // Enhanced resource drops
     const lootDrops = [
-      { resource: 'voidEssence', amount: 50 + Math.floor(Math.random() * 30) },
-      { resource: 'singularityCore', amount: 3 + Math.floor(Math.random() * 3) },
-      { resource: 'flux', amount: 40 + Math.floor(Math.random() * 20) },
-      { resource: 'energy', amount: 100 + Math.floor(Math.random() * 50) },
+      { resource: 'voidEssence', amount: 80 + Math.floor(Math.random() * 50) },
+      { resource: 'singularityCore', amount: 5 + Math.floor(Math.random() * 5) },
+      { resource: 'flux', amount: 60 + Math.floor(Math.random() * 40) },
+      { resource: 'energy', amount: 150 + Math.floor(Math.random() * 100) },
+      { resource: 'aetheriumShard', amount: 8 + Math.floor(Math.random() * 7) },
+      { resource: 'voidCore', amount: 1 },
     ];
 
     lootDrops.forEach((drop, index) => {
@@ -2450,13 +2456,14 @@ export class GameEngine {
         rotation: 0,
         resourceType: drop.resource,
         amount: drop.amount,
-        lifetime: 30,
+        lifetime: 40,
         bobPhase: Math.random() * Math.PI * 2,
       });
     });
 
-    for (let i = 0; i < 3; i++) {
-      const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.5;
+    // Drop 5 crate keys
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2 + Math.random() * 0.5;
       const distance = 60 + Math.random() * 60;
       const keyPos = {
         x: dropPos.x + Math.cos(angle) * distance,
@@ -2471,14 +2478,45 @@ export class GameEngine {
         rotation: 0,
         resourceType: 'crateKey',
         amount: 1,
-        lifetime: 30,
+        lifetime: 40,
         bobPhase: Math.random() * Math.PI * 2,
       });
     }
 
-    this.createParticles(dropPos, 100, '#7c3aed', 1.5);
-    this.createParticles(dropPos, 80, '#a78bfa', 1.2);
-    this.createParticles(dropPos, 60, '#5b21b6', 1.0);
+    // Drop 3-4 high-tier weapons with multiple perks
+    const weaponDropCount = 3 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < weaponDropCount; i++) {
+      const angle = (i / weaponDropCount) * Math.PI * 2 + Math.PI / 4;
+      const distance = 100 + Math.random() * 50;
+      const weaponPos = {
+        x: dropPos.x + Math.cos(angle) * distance,
+        y: dropPos.y + Math.sin(angle) * distance,
+      };
+
+      // Generate high-tier weapon with 2-4 perks
+      const perkCount = 2 + Math.floor(Math.random() * 3);
+      const weapon = this.crateSystem.generateWeapon();
+      const perks = this.crateSystem.generatePerks(weapon, perkCount);
+
+      // Apply perks to weapon
+      perks.forEach(perk => {
+        this.weaponUpgradeManager.applyPerkToWeapon(weapon, perk);
+      });
+
+      const velocityAngle = angle + (Math.random() - 0.5) * 0.5;
+      const velocityMag = 2 + Math.random() * 3;
+      this.spawnWeaponDrop(
+        weaponPos,
+        vectorFromAngle(velocityAngle, velocityMag),
+        weapon,
+        perks
+      );
+    }
+
+    this.createParticles(dropPos, 150, '#7c3aed', 2.0);
+    this.createParticles(dropPos, 120, '#a78bfa', 1.5);
+    this.createParticles(dropPos, 80, '#5b21b6', 1.2);
+    this.createParticles(dropPos, 60, '#fbbf24', 1.0);
 
     this.createDamageNumber(dropPos, 0, '#ffd700', 'VOID SUBDIVIDER DEFEATED!');
   }
@@ -3191,7 +3229,7 @@ export class GameEngine {
       chests: this.chests,
       weaponDrops: this.gameState.weaponDrops,
       score: this.gameState.score,
-      isPaused: this.gameState.isPaused,
+      // Do NOT sync isPaused - each client manages their own pause state
       isGameOver: this.gameState.isGameOver,
       resourcesCollected: this.gameState.resourcesCollected,
       damageNumbers: this.gameState.damageNumbers,
