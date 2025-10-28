@@ -69,6 +69,12 @@ function App() {
       }
     });
 
+    multiplayerManager.onPositionSync((playerId, position, velocity) => {
+      if (gameEngineRef.current && multiplayerManager.getRole() === 'host') {
+        gameEngineRef.current.syncRemotePlayerPosition(playerId, position, velocity);
+      }
+    });
+
     const gameLoop = (time: number) => {
       if (!gameEngineRef.current) return;
       const deltaTime = (time - lastTime.current) / 1000;
@@ -179,6 +185,9 @@ function App() {
       } else {
         gameEngineRef.current.respawnPlayer();
       }
+      
+      const newState = gameEngineRef.current.getState();
+      multiplayerManager.sendPositionSync(newState.player.position, newState.player.velocity);
     } else if (role === 'host') {
       const currentPos = gameEngineRef.current.getState().player.position;
       gameEngineRef.current.respawnPlayer(currentPos);

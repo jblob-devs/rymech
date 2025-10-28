@@ -41,12 +41,21 @@ export interface WorldInitMessage {
   timestamp: number;
 }
 
+export interface PlayerPositionSync {
+  type: 'position_sync';
+  playerId: string;
+  position: Vector2;
+  velocity: Vector2;
+  timestamp: number;
+}
+
 export type NetworkMessage = 
   | GameStateUpdate 
   | PlayerInputMessage 
   | PlayerJoinMessage 
   | PlayerLeaveMessage
-  | WorldInitMessage;
+  | WorldInitMessage
+  | PlayerPositionSync;
 
 export class MultiplayerManager {
   private peer: Peer | null = null;
@@ -60,6 +69,7 @@ export class MultiplayerManager {
   private onConnectionChangeCallback?: () => void;
   private onWorldInitCallback?: (worldData: any) => void;
   private onClientConnectedCallback?: (peerId: string) => void;
+  private onPositionSyncCallback?: (playerId: string, position: Vector2, velocity: Vector2) => void;
   private worldInitialized: boolean = false;
 
   constructor() {}
@@ -206,6 +216,12 @@ export class MultiplayerManager {
           this.worldInitialized = true;
         }
         break;
+      
+      case 'position_sync':
+        if (this.role === 'host' && this.onPositionSyncCallback) {
+          this.onPositionSyncCallback(fromPeerId, message.position, message.velocity);
+        }
+        break;
     }
   }
 
@@ -296,6 +312,32 @@ export class MultiplayerManager {
 
   onClientConnected(callback: (peerId: string) => void) {
     this.onClientConnectedCallback = callback;
+  }
+
+  onPositionSync(callback: (playerId: string, position: Vector2, velocity: Vector2) => void) {
+    this.onPositionSyncCallback = callback;
+  }
+
+  sendPositionSync(position: Vector2, velocity: Vector2) {
+    if (this.role !== 'client') return;
+
+    const message: PlayerPositionSync = {
+      type: 'position_sync',
+      playerId: this.peerId,
+      position,
+      velocity,
+      timestamp: Date.now(),
+    };
+
+    this.connections.forEach((conn) => {
+      if (conn.open) {
+        try {
+          conn.send(message);
+        } catch (err) {
+          console.error('Error sending position sync to', conn.peer, err);
+        }
+      }
+    });
   }
 
   sendWorldInit(worldData: any, toPeerId?: string) {

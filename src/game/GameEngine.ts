@@ -347,6 +347,7 @@ export class GameEngine {
       (pos, count, color, lifetime) => this.createParticles(pos, count, color, lifetime)
     );
     this.gameState.player.speed = PLAYER_BASE_SPEED * speedMultiplier;
+    this.checkPlayerDeath();
     this.featureInteraction.applyEnemyEffects(
       this.gameState.enemies,
       this.biomeFeatures,
@@ -2188,6 +2189,7 @@ export class GameEngine {
 
             if (projectile.playerId && projectile.playerId !== player.id && checkCollision(projectile, player) && !player.isDashing) {
               player.health -= projectile.damage;
+              this.checkPlayerDeath();
               this.createDamageNumber(player.position, projectile.damage, '#ff6600');
               this.createParticles(player.position, 8, '#ff0000', 0.4);
               
@@ -2211,11 +2213,8 @@ export class GameEngine {
         } else {
           if (checkCollision(projectile, player) && !player.isDashing) {
             player.health -= projectile.damage;
+            this.checkPlayerDeath();
             this.createParticles(player.position, 8, '#ff0000', 0.4);
-
-            if (player.health <= 0) {
-              this.gameState.isGameOver = true;
-            }
 
             return false;
           }
@@ -2233,10 +2232,7 @@ export class GameEngine {
           player.health -= enemy.damage;
           enemy.attackCooldown = 1;
           this.createParticles(player.position, 5, '#ff0000', 0.3);
-
-          if (player.health <= 0) {
-            this.gameState.isGameOver = true;
-          }
+          this.checkPlayerDeath();
         }
       }
     });
@@ -3046,6 +3042,13 @@ export class GameEngine {
     }
   }
 
+  private checkPlayerDeath(): void {
+    if (this.gameState.player.health <= 0 && !this.gameState.isGameOver) {
+      this.gameState.isGameOver = true;
+      this.createParticles(this.gameState.player.position, 20, '#ff0000', 1.0);
+    }
+  }
+
   spawnAdminEnemy(type: 'grunt' | 'tank' | 'speedy'): void {
     const player = this.gameState.player;
     const spawnDistance = 200;
@@ -3428,5 +3431,17 @@ export class GameEngine {
     }
 
     this.loadChunksAroundPlayer();
+  }
+
+  syncRemotePlayerPosition(playerId: string, position: Vector2, velocity: Vector2): void {
+    const remotePlayer = this.gameState.remotePlayers.find(rp => rp.peerId === playerId);
+    if (remotePlayer) {
+      remotePlayer.player.position = { ...position };
+      remotePlayer.player.velocity = { ...velocity };
+      remotePlayer.serverPosition = { ...position };
+      remotePlayer.serverVelocity = { ...velocity };
+      remotePlayer.interpolationAlpha = 1;
+      console.log('Synced remote player position:', playerId, position);
+    }
   }
 }
