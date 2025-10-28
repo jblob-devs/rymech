@@ -472,10 +472,10 @@ function App() {
                       Speedy
                     </button>
                     <button
-                      onClick={() => gameEngineRef.current?.spawnAdminEnemy('elite')}
+                      onClick={() => gameEngineRef.current?.spawnAdminWeapon()}
                       className="px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded text-sm transition-colors"
                     >
-                      Elite
+                      Weapon Crate
                     </button>
                   </div>
                 </div>

@@ -322,7 +322,9 @@ export class GameEngine {
   }
 
   update(deltaTime: number): void {
-    if (this.gameState.isPaused || this.gameState.isGameOver) return;
+    // Only respect isPaused for local player, not in multiplayer
+    // In multiplayer, each client manages their own pause independently
+    if (this.gameState.isGameOver) return;
 
     const dt = Math.min(deltaTime, 0.05);
 
@@ -722,6 +724,27 @@ export class GameEngine {
     const swingAngle = (weapon.meleeStats.swingAngle || 90) * strike.swingAngleModifier * (Math.PI / 180);
     const halfAngle = swingAngle / 2;
 
+    // Damage void subdivider boss
+    if (this.voidSubdivider && this.voidSubdivider.health > 0) {
+      const toBoss = vectorSubtract(this.voidSubdivider.position, player.position);
+      const bossDistance = Math.sqrt(toBoss.x * toBoss.x + toBoss.y * toBoss.y);
+      const angleToBoss = Math.atan2(toBoss.y, toBoss.x);
+
+      let angleDiff = angleToBoss - angle;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      const inRange = bossDistance <= (weapon.meleeStats.range || 80) + this.voidSubdivider.size / 2;
+      const inAngle = Math.abs(angleDiff) <= halfAngle;
+
+      if (inRange && inAngle) {
+        this.voidSubdivider.health -= totalDamage;
+        this.createDamageNumber(this.voidSubdivider.position, totalDamage, weapon.color);
+        this.createParticles(this.voidSubdivider.position, 20, weapon.color, 0.5);
+      }
+    }
+
+    // Damage enemies
     this.gameState.enemies.forEach((enemy) => {
       if (enemy.health <= 0) return;
 
@@ -795,6 +818,33 @@ export class GameEngine {
         }
       }
     });
+
+    // PvP melee damage
+    if (this.gameState.pvpEnabled) {
+      this.gameState.remotePlayers.forEach((remotePlayer) => {
+        if (!remotePlayer.player.isDashing) {
+          const toRemote = vectorSubtract(remotePlayer.player.position, player.position);
+          const remoteDistance = Math.sqrt(toRemote.x * toRemote.x + toRemote.y * toRemote.y);
+          const angleToRemote = Math.atan2(toRemote.y, toRemote.x);
+
+          let angleDiff = angleToRemote - angle;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          const inRange = remoteDistance <= (weapon.meleeStats.range || 80) + remotePlayer.player.size / 2;
+          const inAngle = Math.abs(angleDiff) <= halfAngle;
+
+          if (inRange && inAngle) {
+            remotePlayer.player.health -= totalDamage;
+            this.createDamageNumber(remotePlayer.player.position, totalDamage, weapon.color);
+            this.createParticles(remotePlayer.player.position, 15, '#ff6600', 0.4);
+
+            const knockback = vectorNormalize(toRemote);
+            remotePlayer.player.velocity = vectorAdd(remotePlayer.player.velocity || createVector(), vectorScale(knockback, 5));
+          }
+        }
+      });
+    }
 
     const hasDeflection = weapon.perks?.some((perk: any) => perk.id === 'projectile_deflection');
     if (hasDeflection && weapon.isSwinging) {
@@ -901,6 +951,25 @@ export class GameEngine {
     if (weapon.currentCharge) {
       const chargeRatio = weapon.currentCharge / (weapon.chargeTime || 1.5);
       damage *= 1 + chargeRatio * 3;
+    }
+
+    // Damage void subdivider boss with railgun
+    if (this.voidSubdivider && this.voidSubdivider.health > 0) {
+      const distToBeam = this.pointToLineDistance(
+        this.voidSubdivider.position,
+        player.position,
+        { x: player.position.x + Math.cos(angle) * actualBeamLength, y: player.position.y + Math.sin(angle) * actualBeamLength }
+      );
+
+      const bossRadius = this.voidSubdivider.size / 2;
+      if (distToBeam < bossRadius + weapon.projectileSize * 1.5) {
+        const bossDist = vectorDistance(player.position, this.voidSubdivider.position);
+        if (bossDist <= actualBeamLength) {
+          this.voidSubdivider.health -= damage;
+          this.createDamageNumber(this.voidSubdivider.position, damage, '#00ff00');
+          this.createParticles(this.voidSubdivider.position, 30, weapon.color, 0.5);
+        }
+      }
     }
 
     const hitEnemies = new Set<string>();
