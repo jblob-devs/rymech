@@ -27,7 +27,8 @@ MechaRyan is a top-down action survival game built with React, TypeScript, and V
 - Projectile deflection mechanics for melee weapons
 - Crafting and inventory management
 - Multiple biomes with unique features and clustered resource spawning
-- Wave-based enemy system
+- Wave-based enemy system with 8 unique miniboss encounters
+- Miniboss system with phase-based behaviors, unique attacks, and guaranteed loot drops
 - Admin mode for testing
 - Optimized touch controls for mobile devices
 - Resource gathering and trading
@@ -68,6 +69,16 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 28, 2025: Miniboss System Implementation
+  - **8 Unique Minibosses**: Implemented biome-specific miniboss encounters (Angulodon, Cryostag Vanguard, Pyroclast Behemoth, Mirelurker Matron, Prism Guardian, Null Siren, Solstice Warden, Rift Revenant)
+  - **Biome-Feature Spawning**: Minibosses spawn based on biome features (e.g., Angulodon only near coral reefs, Cryostag at glacial spires)
+  - **Phase-Based Behavior**: Each miniboss has 2-3 phases that change their attack patterns as health decreases
+  - **Unique Attack Patterns**: 4+ unique attacks per miniboss with telegraphs and cooldowns
+  - **Special Mechanics**: Implemented unique mechanics like Angulodon's fin/submerged state, whirlpool attacks, Cryostag's armor system, Pyroclast's shield, and orbital weapons
+  - **Guaranteed Loot**: Minibosses drop guaranteed singularity cores plus biome-specific resources and optional weapons
+  - **Spawn Management**: Wave-based spawn conditions with per-feature cooldowns to prevent spam
+  - **Integration**: Fully integrated into GameEngine with spawn checking, update loops, and death handling
+
 - October 28, 2025: Multiplayer Sync & UI Overhaul
   - **Position Synchronization Fix**: Implemented immediate position sync messages (`PlayerPositionSync`) for spawning, respawning, and teleporting events to prevent position mismatch between host and remote player views
   - **Death Detection Fix**: Added centralized `checkPlayerDeath()` method called after all damage sources (environmental hazards, projectiles, enemy collisions) to prevent negative health survival bug
