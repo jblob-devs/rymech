@@ -339,19 +339,75 @@ export class DroneSystem {
   }
 
   private updateDronePosition(drone: Drone, ownerPosition: Vector2, dt: number): void {
-    drone.orbitAngle += drone.orbitSpeed * dt;
-    if (drone.orbitAngle > Math.PI * 2) {
-      drone.orbitAngle -= Math.PI * 2;
+    if (!drone.aiState) {
+      drone.aiState = 'hovering';
+      drone.aiTimer = 0;
+      drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
     }
 
-    const targetX = ownerPosition.x + Math.cos(drone.orbitAngle) * drone.orbitRadius;
-    const targetY = ownerPosition.y + Math.sin(drone.orbitAngle) * drone.orbitRadius;
+    drone.aiTimer = (drone.aiTimer || 0) + dt;
 
-    const smoothingFactor = 0.15;
-    drone.position.x += (targetX - drone.position.x) * smoothingFactor;
-    drone.position.y += (targetY - drone.position.y) * smoothingFactor;
+    if (drone.aiState === 'hovering') {
+      if (drone.aiTimer > 3 + Math.random() * 2) {
+        drone.aiState = Math.random() < 0.7 ? 'orbiting' : 'spinning';
+        drone.aiTimer = 0;
+      }
+      
+      const hoverX = ownerPosition.x + (drone.hoverOffset?.x || 0);
+      const hoverY = ownerPosition.y + (drone.hoverOffset?.y || 0);
+      
+      const smoothingFactor = 0.12;
+      drone.position.x += (hoverX - drone.position.x) * smoothingFactor;
+      drone.position.y += (hoverY - drone.position.y) * smoothingFactor;
 
-    const toTarget = vectorSubtract({ x: targetX, y: targetY }, drone.position);
+      const distance = vectorDistance(drone.position, ownerPosition);
+      if (distance > drone.orbitRadius + 30) {
+        const toOwner = vectorNormalize(vectorSubtract(ownerPosition, drone.position));
+        drone.position.x += toOwner.x * 3;
+        drone.position.y += toOwner.y * 3;
+      }
+    } 
+    else if (drone.aiState === 'orbiting') {
+      if (drone.aiTimer > 2 + Math.random() * 1.5) {
+        drone.aiState = 'hovering';
+        drone.aiTimer = 0;
+        drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
+      }
+
+      drone.orbitAngle = (drone.orbitAngle || 0) + drone.orbitSpeed * dt;
+      if (drone.orbitAngle > Math.PI * 2) {
+        drone.orbitAngle -= Math.PI * 2;
+      }
+
+      const targetX = ownerPosition.x + Math.cos(drone.orbitAngle) * drone.orbitRadius;
+      const targetY = ownerPosition.y + Math.sin(drone.orbitAngle) * drone.orbitRadius;
+
+      const smoothingFactor = 0.18;
+      drone.position.x += (targetX - drone.position.x) * smoothingFactor;
+      drone.position.y += (targetY - drone.position.y) * smoothingFactor;
+    }
+    else if (drone.aiState === 'spinning') {
+      if (drone.aiTimer > 1.5) {
+        drone.aiState = 'hovering';
+        drone.aiTimer = 0;
+        drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
+      }
+
+      const spinSpeed = 8;
+      drone.orbitAngle = (drone.orbitAngle || 0) + spinSpeed * dt;
+      const spinRadius = 30;
+
+      const targetX = ownerPosition.x + Math.cos(drone.orbitAngle) * spinRadius;
+      const targetY = ownerPosition.y + Math.sin(drone.orbitAngle) * spinRadius;
+
+      const smoothingFactor = 0.25;
+      drone.position.x += (targetX - drone.position.x) * smoothingFactor;
+      drone.position.y += (targetY - drone.position.y) * smoothingFactor;
+    }
+
+    const toTarget = drone.targetId 
+      ? vectorSubtract(drone.position, ownerPosition)
+      : vectorSubtract({ x: ownerPosition.x, y: ownerPosition.y }, drone.position);
     drone.rotation = Math.atan2(toTarget.y, toTarget.x);
   }
 

@@ -491,32 +491,35 @@ function App() {
                 </div>
 
                 <div>
-                  <h3 className="text-slate-300 font-semibold mb-2">Spawn Drones</h3>
+                  <h3 className="text-slate-300 font-semibold mb-2">Resource Cheats</h3>
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => gameEngineRef.current?.spawnAdminDrone('assault_drone')}
-                      className="px-3 py-2 bg-red-700 hover:bg-red-600 rounded text-sm transition-colors"
-                    >
-                      Assault Drone
-                    </button>
-                    <button
-                      onClick={() => gameEngineRef.current?.spawnAdminDrone('shield_drone')}
-                      className="px-3 py-2 bg-blue-700 hover:bg-blue-600 rounded text-sm transition-colors"
-                    >
-                      Shield Drone
-                    </button>
-                    <button
-                      onClick={() => gameEngineRef.current?.spawnAdminDrone('repair_drone')}
-                      className="px-3 py-2 bg-green-700 hover:bg-green-600 rounded text-sm transition-colors"
-                    >
-                      Repair Drone
-                    </button>
-                    <button
-                      onClick={() => gameEngineRef.current?.spawnAdminDrone('scout_drone')}
+                      onClick={() => gameEngineRef.current?.addAdminResources(100)}
                       className="px-3 py-2 bg-yellow-700 hover:bg-yellow-600 rounded text-sm transition-colors"
                     >
-                      Scout Drone
+                      +100 Resources
                     </button>
+                    <button
+                      onClick={() => gameEngineRef.current?.addAdminCurrency(500)}
+                      className="px-3 py-2 bg-green-700 hover:bg-green-600 rounded text-sm transition-colors"
+                    >
+                      +500 Currency
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto">
+                  <h3 className="text-slate-300 font-semibold mb-2">Add Drones to Inventory</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['assault_drone', 'shield_drone', 'repair_drone', 'scout_drone', 'plasma_drone', 'cryo_drone', 'explosive_drone', 'emp_drone', 'sniper_drone', 'laser_drone', 'swarm_drone', 'gravity_drone', 'medic_drone', 'tesla_drone', 'void_drone'] as const).map((droneType) => (
+                      <button
+                        key={droneType}
+                        onClick={() => gameEngineRef.current?.spawnAdminDrone(droneType)}
+                        className="px-2 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs transition-colors"
+                      >
+                        {droneType.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

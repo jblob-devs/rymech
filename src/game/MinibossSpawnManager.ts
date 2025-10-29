@@ -13,8 +13,8 @@ interface MinibossSpawnState {
 export class MinibossSpawnManager {
   private minibossSystem: MinibossSystem;
   private spawnStates: Map<string, MinibossSpawnState> = new Map();
-  private readonly MIN_SPAWN_COOLDOWN = 180;
-  private readonly MIN_PLAYER_LEVEL = 5;
+  private readonly MIN_SPAWN_COOLDOWN = 60;
+  private readonly MIN_PLAYER_LEVEL = 3;
   private currentBiomeId: string = '';
 
   constructor(minibossSystem: MinibossSystem) {
@@ -149,13 +149,13 @@ export class MinibossSpawnManager {
   }
 
   private calculateSpawnChance(currentWave: number, previousSpawns: number): number {
-    let baseChance = 0.02;
+    let baseChance = 0.08;
     
-    baseChance += Math.min(currentWave / 100, 0.08);
+    baseChance += Math.min(currentWave / 50, 0.15);
     
-    baseChance *= Math.pow(0.7, previousSpawns);
+    baseChance *= Math.pow(0.85, previousSpawns);
 
-    return Math.min(baseChance, 0.15);
+    return Math.min(baseChance, 0.35);
   }
 
   private getSpawnPosition(feature: AnyBiomeFeature, playerPosition: Vector2): Vector2 {

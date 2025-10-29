@@ -3463,15 +3463,21 @@ export class GameEngine {
 
   spawnAdminDrone(droneType: import('../types/game').DroneType): void {
     this.inventory.addDrone(droneType);
-    
-    if (this.inventory.canEquipMoreDrones()) {
-      const success = this.inventory.equipDrone(droneType);
-      if (success) {
-        this.gameState.player.equippedDrones = this.inventory.getEquippedDrones();
-        this.syncDrones();
-        this.createParticles(this.gameState.player.position, 30, '#4ade80', 0.6);
-      }
-    }
+    this.createParticles(this.gameState.player.position, 30, '#4ade80', 0.6);
+  }
+
+  addAdminResources(amount: number = 100): void {
+    this.gameState.player.resources.energy += amount;
+    this.gameState.player.resources.coreDust += amount;
+    this.gameState.player.resources.flux += amount;
+    this.gameState.player.resources.geoShards += amount;
+    this.gameState.player.resources.alloyFragments += amount;
+    this.createParticles(this.gameState.player.position, 50, '#fbbf24', 0.8);
+  }
+
+  addAdminCurrency(amount: number = 500): void {
+    this.gameState.player.currency += amount;
+    this.createParticles(this.gameState.player.position, 40, '#10b981', 0.7);
   }
 
   getMultiplayerState(hostPeerId: string): Partial<GameState> {

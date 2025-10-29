@@ -123,6 +123,9 @@ export interface Drone extends Entity {
   repairRate?: number;
   lastRepairTime?: number;
   detectionRadius?: number;
+  aiState?: 'hovering' | 'orbiting' | 'spinning';
+  aiTimer?: number;
+  hoverOffset?: Vector2;
 }
 
 export interface Enemy extends Entity {
@@ -367,8 +370,9 @@ export interface CraftingRecipe {
   description: string;
   ingredients: { resource: string; amount: number }[];
   output: {
-    type: 'consumable';
-    item: Consumable;
+    type: 'consumable' | 'drone';
+    item?: Consumable;
+    droneType?: DroneType;
   };
   gridPattern: (string[] | null)[][];
   patternDescription?: string;
