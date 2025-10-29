@@ -69,6 +69,31 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 29, 2025: Drone System & Miniboss AI Improvements
+  - **Drone Inventory UI**: Added dedicated drone section to inventory screen with equip/unequip/delete functionality matching weapon inventory patterns
+  - **Drone Crafting Fix**: Fixed drone crafting to properly route drones to inventory instead of consumables tab using DroneType check
+  - **Miniboss AI Overhaul**: Completely redesigned miniboss movement AI with strategic positioning:
+    - Kiting behavior at close range (strafe sideways while backing away)
+    - Circling behavior at optimal attack range (orbit around player)
+    - Pursuit behavior at far range (chase player)
+    - Optimal range calculation per miniboss type for balanced encounters
+    - Telegraph slowdown and dash cancellation for fair telegraphed attacks
+  - **Melee Weapon Perks Expansion**: Added 15+ new melee-specific perks including:
+    - Riposte Master (counterattack on taking damage)
+    - Sweeping Fury, Precision Striker, Reaper Spin (swing angle modifiers)
+    - Finishing Blow, Crushing Blow (special combo/execution perks)
+    - Dance of Blades, Master's Technique (combo count modifiers)
+    - Whirling Dervish, Lunging Strike (movement-based perks)
+    - Steel Tempest, Blade Echo, Vorpal Edge (legendary effects)
+  - **Drone Effects Enhancement**: Enhanced all 15 drone types with detailed passive and active effects:
+    - Assault Drone: +15% player damage passive, burst fire active
+    - Shield Drone: 20% damage absorption passive, emergency shield bubble active
+    - Repair/Medic Drones: HP regeneration passives, instant heal actives
+    - Scout Drone: Detection range passive, enemy marking active
+    - Plasma Drone: Piercing passive, overcharge active
+    - Tesla Drone: Chain lightning passive, tesla storm active
+    - And more unique effects for all drone types with balanced cooldowns
+
 - October 28, 2025: Miniboss System Implementation
   - **8 Unique Minibosses**: Implemented biome-specific miniboss encounters (Angulodon, Cryostag Vanguard, Pyroclast Behemoth, Mirelurker Matron, Prism Guardian, Null Siren, Solstice Warden, Rift Revenant)
   - **Biome-Feature Spawning**: Minibosses spawn based on biome features (e.g., Angulodon only near coral reefs, Cryostag at glacial spires)
