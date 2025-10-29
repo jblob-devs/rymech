@@ -69,6 +69,16 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 29, 2025: Melee Perk System Fix & Drone Inventory UI
+  - **Unified Weapon Perk System**: Merged all weapon perks into a single system with `weaponCategory` field ('melee' or 'ranged')
+  - **Category-Aware Perk Application**: Modified WeaponCrateSystem to detect melee weapon types and apply only category-appropriate perks
+  - **Melee Weapon Exclusivity**: Ensured melee weapons (void_blade, crimson_scythe, titan_hammer, flowing_glaive, shadow_daggers, berserker_axe, guardian_blade) can ONLY roll melee-specific perks
+  - **Drone Inventory Display**: Added comprehensive drone section to inventory UI (press 'I' key) showing:
+    - Equipped drones in left panel with empty slots
+    - Stowed drones in right panel with equip functionality
+    - DroneCard component displaying stats, passive/active effects, descriptions
+    - Equip/unequip/delete handlers integrated with GameEngine state management
+
 - October 29, 2025: Drone System & Miniboss AI Improvements
   - **Drone Inventory UI**: Added dedicated drone section to inventory screen with equip/unequip/delete functionality matching weapon inventory patterns
   - **Drone Crafting Fix**: Fixed drone crafting to properly route drones to inventory instead of consumables tab using DroneType check
