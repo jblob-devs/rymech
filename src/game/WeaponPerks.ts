@@ -7,10 +7,11 @@ export interface WeaponPerk {
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   icon: string;
   effects: PerkEffect[];
+  weaponCategory: 'melee' | 'ranged';
 }
 
 export interface PerkEffect {
-  property: keyof Weapon;
+  property: string;
   value: number;
   operation: 'add' | 'multiply' | 'set';
 }
@@ -23,6 +24,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'rare',
     icon: 'zap',
     effects: [{ property: 'damage', value: 0.25, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'explosive_payload',
@@ -34,6 +36,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'explosive', value: 1, operation: 'set' },
       { property: 'explosionRadius', value: 60, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'rapid_fire',
@@ -42,6 +45,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'rare',
     icon: 'repeat',
     effects: [{ property: 'fireRate', value: -0.3, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'velocity_boost',
@@ -50,6 +54,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'common',
     icon: 'rocket',
     effects: [{ property: 'projectileSpeed', value: 0.5, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'piercing_shots',
@@ -58,6 +63,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'epic',
     icon: 'crosshair',
     effects: [{ property: 'piercing', value: 1, operation: 'set' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'homing_guidance',
@@ -69,6 +75,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'homing', value: 1, operation: 'set' },
       { property: 'homingStrength', value: 0.08, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'multi_shot',
@@ -77,6 +84,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'rare',
     icon: 'maximize-2',
     effects: [{ property: 'projectileCount', value: 2, operation: 'add' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'ricochet',
@@ -85,6 +93,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'epic',
     icon: 'corner-down-right',
     effects: [{ property: 'ricochet', value: 1, operation: 'set' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'giant_rounds',
@@ -93,6 +102,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'rare',
     icon: 'circle',
     effects: [{ property: 'projectileSize', value: 0.6, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'focused_beam',
@@ -101,6 +111,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'common',
     icon: 'minimize-2',
     effects: [{ property: 'spread', value: -0.5, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'wide_spread',
@@ -109,6 +120,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'common',
     icon: 'maximize',
     effects: [{ property: 'spread', value: 0.8, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'sniper_rounds',
@@ -120,6 +132,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'damage', value: 0.6, operation: 'multiply' },
       { property: 'fireRate', value: 0.4, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'gatling_mode',
@@ -131,6 +144,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'fireRate', value: -0.5, operation: 'multiply' },
       { property: 'damage', value: -0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'plasma_infusion',
@@ -142,6 +156,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'damage', value: 0.15, operation: 'multiply' },
       { property: 'projectileSpeed', value: 0.25, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'critical_strike',
@@ -150,6 +165,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'legendary',
     icon: 'star',
     effects: [{ property: 'damage', value: 0.45, operation: 'multiply' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'triple_shot',
@@ -158,6 +174,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     rarity: 'epic',
     icon: 'layers',
     effects: [{ property: 'projectileCount', value: 3, operation: 'add' }],
+    weaponCategory: 'ranged',
   },
   {
     id: 'burst_fire',
@@ -169,6 +186,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'projectileCount', value: 1, operation: 'add' },
       { property: 'fireRate', value: -0.15, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'extended_range',
@@ -180,6 +198,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'projectileSpeed', value: 0.4, operation: 'multiply' },
       { property: 'projectileSize', value: 0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'chain_lightning',
@@ -191,6 +210,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'chainRange', value: 200, operation: 'set' },
       { property: 'projectileSpeed', value: 0.5, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'smart_tracking',
@@ -202,6 +222,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'homing', value: 1, operation: 'set' },
       { property: 'homingStrength', value: 0.12, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'armor_piercing',
@@ -213,6 +234,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'damage', value: 0.3, operation: 'multiply' },
       { property: 'piercing', value: 1, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'compact_rounds',
@@ -224,6 +246,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'fireRate', value: -0.4, operation: 'multiply' },
       { property: 'projectileSpeed', value: 0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'cluster_bomb',
@@ -236,6 +259,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'explosionRadius', value: 50, operation: 'set' },
       { property: 'projectileCount', value: 2, operation: 'add' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'steady_aim',
@@ -247,6 +271,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'spread', value: -0.7, operation: 'multiply' },
       { property: 'damage', value: 0.06, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'overclocked',
@@ -259,6 +284,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'projectileSpeed', value: 0.2, operation: 'multiply' },
       { property: 'fireRate', value: -0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'miniature_warhead',
@@ -270,6 +296,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'explosive', value: 1, operation: 'set' },
       { property: 'explosionRadius', value: 40, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'scatter_shot',
@@ -281,6 +308,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'projectileCount', value: 4, operation: 'add' },
       { property: 'spread', value: 1.0, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'precision_optics',
@@ -292,6 +320,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'projectileSpeed', value: 0.35, operation: 'multiply' },
       { property: 'spread', value: -0.6, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'unstable_core',
@@ -303,6 +332,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'damage', value: 0.5, operation: 'multiply' },
       { property: 'spread', value: 0.5, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'quantum_bounce',
@@ -314,6 +344,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'ricochet', value: 1, operation: 'set' },
       { property: 'projectileSpeed', value: 0.4, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'chain_lightning_strike',
@@ -324,6 +355,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'chainRange', value: 150, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'split_shot',
@@ -334,6 +366,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'splitCount', value: 3, operation: 'set' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'portal_rounds',
@@ -345,6 +378,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'portalDuration', value: 5, operation: 'set' },
       { property: 'projectileSpeed', value: 0.3, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'rampage',
@@ -355,6 +389,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'damage', value: 0.1, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'berserker',
@@ -365,6 +400,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'damage', value: 0.05, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'vampiric',
@@ -375,6 +411,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'damage', value: 0.1, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'frost_rounds',
@@ -385,6 +422,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'projectileSpeed', value: -0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'incendiary',
@@ -395,6 +433,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'damage', value: 0.15, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'long_barrel',
@@ -405,6 +444,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
     effects: [
       { property: 'maxRange', value: 0.5, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'short_range',
@@ -416,6 +456,7 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'maxRange', value: -0.4, operation: 'multiply' },
       { property: 'damage', value: 0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
   },
   {
     id: 'extended_barrel',
@@ -427,30 +468,494 @@ export const WEAPON_PERKS: WeaponPerk[] = [
       { property: 'maxRange', value: 0.8, operation: 'multiply' },
       { property: 'projectileSpeed', value: 0.2, operation: 'multiply' },
     ],
+    weaponCategory: 'ranged',
+  },
+  {
+    id: 'cleaving_strikes',
+    name: 'Cleaving Strikes',
+    description: '+50% swing angle, hits multiple enemies',
+    rarity: 'rare',
+    icon: 'sword',
+    effects: [{ property: 'meleeStats.swingAngle', value: 0.5, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'lethal_tempo',
+    name: 'Lethal Tempo',
+    description: '+40% attack speed',
+    rarity: 'rare',
+    icon: 'zap',
+    effects: [{ property: 'fireRate', value: -0.4, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'executioner',
+    name: 'Executioner',
+    description: '+100% damage to enemies below 30% health',
+    rarity: 'epic',
+    icon: 'skull',
+    effects: [{ property: 'damage', value: 0.3, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'combo_master',
+    name: 'Combo Master',
+    description: 'Max combo increased to 5, +100% combo damage bonus',
+    rarity: 'legendary',
+    icon: 'layers',
+    effects: [
+      { property: 'meleeStats.comboCount', value: 2, operation: 'add' },
+      { property: 'meleeStats.comboDamageMultiplier', value: 0.5, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'dash_assassin',
+    name: 'Dash Assassin',
+    description: '+150% damage on dash slash',
+    rarity: 'epic',
+    icon: 'wind',
+    effects: [{ property: 'meleeStats.dashSlashBonus', value: 1.5, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'extended_reach',
+    name: 'Extended Reach',
+    description: '+60% melee range',
+    rarity: 'common',
+    icon: 'arrow-right',
+    effects: [
+      { property: 'meleeStats.range', value: 0.6, operation: 'multiply' },
+      { property: 'maxRange', value: 0.6, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'whirlwind',
+    name: 'Whirlwind',
+    description: '360 degree swing, hits all around',
+    rarity: 'legendary',
+    icon: 'rotate-cw',
+    effects: [{ property: 'meleeStats.swingAngle', value: 360, operation: 'set' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'life_steal',
+    name: 'Life Steal',
+    description: 'Heal for 15% of melee damage dealt',
+    rarity: 'epic',
+    icon: 'heart-pulse',
+    effects: [{ property: 'damage', value: 0.1, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'brutal_force',
+    name: 'Brutal Force',
+    description: '+50% damage, -20% attack speed',
+    rarity: 'rare',
+    icon: 'hammer',
+    effects: [
+      { property: 'damage', value: 0.5, operation: 'multiply' },
+      { property: 'fireRate', value: 0.2, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'lightning_blade',
+    name: 'Lightning Blade',
+    description: '+80% attack speed, -10% damage',
+    rarity: 'rare',
+    icon: 'zap',
+    effects: [
+      { property: 'fireRate', value: -0.8, operation: 'multiply' },
+      { property: 'damage', value: -0.1, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'void_eruption',
+    name: 'Void Eruption',
+    description: 'Every 3rd hit creates a void explosion dealing area damage',
+    rarity: 'legendary',
+    icon: 'circle-dot',
+    effects: [{ property: 'damage', value: 0.2, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'phase_strike',
+    name: 'Phase Strike',
+    description: 'Melee attacks ignore 50% of distance, teleport slightly forward',
+    rarity: 'epic',
+    icon: 'move',
+    effects: [{ property: 'meleeStats.range', value: 0.5, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'bloodlust',
+    name: 'Bloodlust',
+    description: '+5% attack speed per kill for 5 seconds (stacks)',
+    rarity: 'rare',
+    icon: 'droplet',
+    effects: [{ property: 'damage', value: 0.15, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'sharpened_edge',
+    name: 'Sharpened Edge',
+    description: '+30% damage',
+    rarity: 'common',
+    icon: 'triangle',
+    effects: [{ property: 'damage', value: 0.3, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'momentum_slash',
+    name: 'Momentum Slash',
+    description: 'Damage increases with movement speed',
+    rarity: 'rare',
+    icon: 'wind',
+    effects: [{ property: 'damage', value: 0.25, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'critical_edge',
+    name: 'Critical Edge',
+    description: '20% chance to deal triple damage',
+    rarity: 'legendary',
+    icon: 'star',
+    effects: [{ property: 'damage', value: 0.4, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'faster_combos',
+    name: 'Faster Combos',
+    description: 'Combo window extended by 50%',
+    rarity: 'rare',
+    icon: 'clock',
+    effects: [{ property: 'fireRate', value: -0.2, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'berserker_rage',
+    name: 'Berserker Rage',
+    description: '+2% damage per 1% missing health',
+    rarity: 'epic',
+    icon: 'flame',
+    effects: [{ property: 'damage', value: 0.1, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'projectile_deflection',
+    name: 'Projectile Deflection',
+    description: 'Melee swings deflect enemy projectiles back at them',
+    rarity: 'legendary',
+    icon: 'shield',
+    effects: [{ property: 'damage', value: 0.15, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'vampiric_blade',
+    name: 'Vampiric Blade',
+    description: 'Heal for 25% of damage dealt',
+    rarity: 'legendary',
+    icon: 'heart',
+    effects: [{ property: 'damage', value: 0.2, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'phantom_strikes',
+    name: 'Phantom Strikes',
+    description: 'Attacks hit twice in quick succession',
+    rarity: 'legendary',
+    icon: 'ghost',
+    effects: [{ property: 'damage', value: 0.5, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'elemental_fury',
+    name: 'Elemental Fury',
+    description: 'Attacks apply burning, freezing, or shocking effects',
+    rarity: 'epic',
+    icon: 'flame',
+    effects: [{ property: 'damage', value: 0.3, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'chain_massacre',
+    name: 'Chain Massacre',
+    description: 'Killing blows chain to nearby enemies',
+    rarity: 'epic',
+    icon: 'link',
+    effects: [
+      { property: 'damage', value: 0.25, operation: 'multiply' },
+      { property: 'meleeStats.swingAngle', value: 0.3, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'perfect_parry',
+    name: 'Perfect Parry',
+    description: 'Blocking attacks during swing grants +100% damage for next strike',
+    rarity: 'legendary',
+    icon: 'shield-check',
+    effects: [{ property: 'meleeStats.dashSlashBonus', value: 0.5, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'rending_strikes',
+    name: 'Rending Strikes',
+    description: 'Attacks reduce enemy armor, stacking up to 5 times',
+    rarity: 'epic',
+    icon: 'target',
+    effects: [{ property: 'damage', value: 0.2, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'storm_cutter',
+    name: 'Storm Cutter',
+    description: 'Swings create lightning arcs that damage enemies in a line',
+    rarity: 'legendary',
+    icon: 'zap',
+    effects: [
+      { property: 'damage', value: 0.35, operation: 'multiply' },
+      { property: 'meleeStats.range', value: 0.4, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'relentless_assault',
+    name: 'Relentless Assault',
+    description: 'Each consecutive hit increases attack speed by 10%',
+    rarity: 'rare',
+    icon: 'repeat',
+    effects: [{ property: 'fireRate', value: -0.3, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'soul_reaper',
+    name: 'Soul Reaper',
+    description: 'Killing enemies grants temporary bonus damage',
+    rarity: 'epic',
+    icon: 'skull',
+    effects: [{ property: 'damage', value: 0.25, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'riposte_master',
+    name: 'Riposte Master',
+    description: 'Taking damage within 0.5s grants +200% damage on next swing',
+    rarity: 'legendary',
+    icon: 'sword',
+    effects: [{ property: 'damage', value: 0.4, operation: 'multiply' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'sweeping_fury',
+    name: 'Sweeping Fury',
+    description: '+120 degree swing angle, hits in wider arc',
+    rarity: 'epic',
+    icon: 'scan',
+    effects: [{ property: 'meleeStats.swingAngle', value: 120, operation: 'add' }],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'precision_striker',
+    name: 'Precision Striker',
+    description: '-30 degree angle, +60% damage, focused strikes',
+    rarity: 'rare',
+    icon: 'crosshair',
+    effects: [
+      { property: 'meleeStats.swingAngle', value: -30, operation: 'add' },
+      { property: 'damage', value: 0.6, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'finishing_blow',
+    name: 'Finishing Blow',
+    description: 'Final combo strike deals +300% damage',
+    rarity: 'legendary',
+    icon: 'shield-x',
+    effects: [
+      { property: 'meleeStats.comboDamageMultiplier', value: 1.0, operation: 'multiply' },
+      { property: 'damage', value: 0.3, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'dance_of_blades',
+    name: 'Dance of Blades',
+    description: '+100% combo count, -15% damage per hit',
+    rarity: 'epic',
+    icon: 'sparkles',
+    effects: [
+      { property: 'meleeStats.comboCount', value: 3, operation: 'add' },
+      { property: 'damage', value: -0.15, operation: 'multiply' },
+      { property: 'fireRate', value: -0.3, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'heavy_impact',
+    name: 'Heavy Impact',
+    description: 'Swings knockback enemies further, +40% damage',
+    rarity: 'rare',
+    icon: 'hammer',
+    effects: [
+      { property: 'damage', value: 0.4, operation: 'multiply' },
+      { property: 'fireRate', value: 0.15, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'whirling_dervish',
+    name: 'Whirling Dervish',
+    description: 'Continuous spinning attacks, +200% swing angle, +60% attack speed',
+    rarity: 'legendary',
+    icon: 'loader',
+    effects: [
+      { property: 'meleeStats.swingAngle', value: 200, operation: 'add' },
+      { property: 'fireRate', value: -0.6, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'lunging_strike',
+    name: 'Lunging Strike',
+    description: 'Dash forward on each swing, +80% range',
+    rarity: 'epic',
+    icon: 'arrow-up-right',
+    effects: [
+      { property: 'meleeStats.range', value: 0.8, operation: 'multiply' },
+      { property: 'meleeStats.dashSlashBonus', value: 0.5, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'steel_tempest',
+    name: 'Steel Tempest',
+    description: 'Creates a storm of blades, swinging hits 3 times',
+    rarity: 'legendary',
+    icon: 'wind',
+    effects: [
+      { property: 'damage', value: 0.8, operation: 'multiply' },
+      { property: 'meleeStats.swingAngle', value: 0.5, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'feral_instinct',
+    name: 'Feral Instinct',
+    description: '+120% attack speed while below 50% health',
+    rarity: 'epic',
+    icon: 'activity',
+    effects: [
+      { property: 'fireRate', value: -0.4, operation: 'multiply' },
+      { property: 'damage', value: 0.15, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'crushing_blow',
+    name: 'Crushing Blow',
+    description: 'Every 5th hit deals 500% damage, slower swing',
+    rarity: 'legendary',
+    icon: 'anvil',
+    effects: [
+      { property: 'damage', value: 0.5, operation: 'multiply' },
+      { property: 'fireRate', value: 0.2, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'blade_echo',
+    name: 'Blade Echo',
+    description: 'Swings leave afterimages that damage enemies',
+    rarity: 'epic',
+    icon: 'copy',
+    effects: [
+      { property: 'damage', value: 0.35, operation: 'multiply' },
+      { property: 'meleeStats.swingDuration', value: 0.15, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'masters_technique',
+    name: "Master's Technique",
+    description: '+2 combo count, +30% combo damage multiplier',
+    rarity: 'rare',
+    icon: 'award',
+    effects: [
+      { property: 'meleeStats.comboCount', value: 2, operation: 'add' },
+      { property: 'meleeStats.comboDamageMultiplier', value: 0.3, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'vorpal_edge',
+    name: 'Vorpal Edge',
+    description: '10% chance to instantly kill non-boss enemies below 20% HP',
+    rarity: 'legendary',
+    icon: 'zap-off',
+    effects: [
+      { property: 'damage', value: 0.5, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
+  },
+  {
+    id: 'reaper_spin',
+    name: 'Reaper Spin',
+    description: '270 degree sweeping attacks, moderate damage boost',
+    rarity: 'epic',
+    icon: 'circle-slash',
+    effects: [
+      { property: 'meleeStats.swingAngle', value: 270, operation: 'set' },
+      { property: 'damage', value: 0.25, operation: 'multiply' },
+    ],
+    weaponCategory: 'melee',
   },
 ];
 
-export function getRandomPerks(count: number): WeaponPerk[] {
-  const shuffled = [...WEAPON_PERKS].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, WEAPON_PERKS.length));
+export function getRandomPerks(count: number, category: 'melee' | 'ranged'): WeaponPerk[] {
+  const categoryPerks = WEAPON_PERKS.filter(perk => perk.weaponCategory === category);
+  const shuffled = [...categoryPerks].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, categoryPerks.length));
 }
 
 export function applyPerkToWeapon(weapon: Weapon, perk: WeaponPerk): Weapon {
   const modifiedWeapon = { ...weapon };
 
   perk.effects.forEach((effect) => {
-    const currentValue = modifiedWeapon[effect.property] as number;
+    const keys = effect.property.split('.');
 
-    switch (effect.operation) {
-      case 'add':
-        (modifiedWeapon[effect.property] as number) = currentValue + effect.value;
-        break;
-      case 'multiply':
-        (modifiedWeapon[effect.property] as number) = currentValue * (1 + effect.value);
-        break;
-      case 'set':
-        (modifiedWeapon[effect.property] as any) = effect.value;
-        break;
+    if (keys.length === 1) {
+      const currentValue = modifiedWeapon[effect.property as keyof Weapon] as number;
+
+      switch (effect.operation) {
+        case 'add':
+          (modifiedWeapon[effect.property as keyof Weapon] as number) = currentValue + effect.value;
+          break;
+        case 'multiply':
+          (modifiedWeapon[effect.property as keyof Weapon] as number) = currentValue * (1 + effect.value);
+          break;
+        case 'set':
+          (modifiedWeapon[effect.property as keyof Weapon] as any) = effect.value;
+          break;
+      }
+    } else if (keys.length === 2 && keys[0] === 'meleeStats' && modifiedWeapon.meleeStats) {
+      const currentValue = modifiedWeapon.meleeStats[keys[1] as keyof typeof modifiedWeapon.meleeStats] as number;
+
+      switch (effect.operation) {
+        case 'add':
+          (modifiedWeapon.meleeStats[keys[1] as keyof typeof modifiedWeapon.meleeStats] as number) = currentValue + effect.value;
+          break;
+        case 'multiply':
+          (modifiedWeapon.meleeStats[keys[1] as keyof typeof modifiedWeapon.meleeStats] as number) = currentValue * (1 + effect.value);
+          break;
+        case 'set':
+          (modifiedWeapon.meleeStats[keys[1] as keyof typeof modifiedWeapon.meleeStats] as any) = effect.value;
+          break;
+      }
     }
   });
 

@@ -3,12 +3,13 @@ import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
 import { GameEngine } from './game/GameEngine';
 import { GameState, Weapon } from './types/game';
-import { X, Archive, ShoppingCart, FlaskConical, Users } from 'lucide-react';
+import { X, Archive, ShoppingCart, FlaskConical, Users, Cpu } from 'lucide-react';
 import Minimap from './components/Minimap';
 import CraftingMenu from './components/CraftingMenu';
 import TouchControls from './components/TouchControls';
 import ConnectionMenu from './components/ConnectionMenu';
 import { MultiplayerManager } from './game/MultiplayerManager';
+import { DRONE_DEFINITIONS } from './game/DroneSystem';
 
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -217,6 +218,18 @@ function App() {
     gameEngineRef.current?.deleteWeapon(weaponId);
   };
 
+  const handleEquipDrone = (droneType: import('./types/game').DroneType) => {
+    gameEngineRef.current?.equipDrone(droneType);
+  };
+
+  const handleUnequipDrone = (droneType: import('./types/game').DroneType) => {
+    gameEngineRef.current?.unequipDrone(droneType);
+  };
+
+  const handleDeleteDrone = (droneType: import('./types/game').DroneType) => {
+    gameEngineRef.current?.deleteDrone(droneType);
+  };
+
   const handleUseConsumable = (consumableId: string) => {
     gameEngineRef.current?.useConsumable(consumableId);
   };
@@ -243,6 +256,11 @@ function App() {
   const equippedWeapons = gameState.player.equippedWeapons;
   const equippedWeaponIds = new Set(equippedWeapons.map(w => w.id));
   const stowedWeapons = allInventoryWeapons.filter(invW => !equippedWeaponIds.has(invW.weapon.id));
+  
+  const allInventoryDrones = inventory.getDrones();
+  const equippedDrones = allInventoryDrones.filter(d => d.equipped);
+  const stowedDrones = allInventoryDrones.filter(d => !d.equipped);
+  const maxEquippedDrones = inventory.getMaxEquippedDrones();
 
   return (
     <div className="relative w-screen h-screen bg-gray-900 flex items-center justify-center text-white overflow-hidden" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
@@ -389,6 +407,22 @@ function App() {
                   ))}
                 </div>
               </div>
+              <div className="mt-6 pt-4 border-t border-slate-700">
+                <h2 className="text-xl font-semibold text-slate-300 mb-3">DRONES</h2>
+                <div className="space-y-2">
+                  <div className="text-xs text-slate-400 mb-2">
+                    Equipped: <span className="text-cyan-400 font-bold">{equippedDrones.length}/{maxEquippedDrones}</span>
+                  </div>
+                  {equippedDrones.map(invDrone => (
+                    <DroneCard key={invDrone.droneType} droneType={invDrone.droneType} onAction={handleUnequipDrone} actionLabel="Unequip" />
+                  ))}
+                  {equippedDrones.length < maxEquippedDrones && Array.from({ length: maxEquippedDrones - equippedDrones.length }).map((_, i) => (
+                    <div key={i} className="h-16 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center text-slate-600 text-xs">
+                      EMPTY SLOT
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="col-span-3 bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 overflow-y-auto">
               <h2 className="text-2xl font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2">STOWED</h2>
@@ -397,6 +431,16 @@ function App() {
                   <WeaponCard key={invW.weapon.id} weapon={invW.weapon} onAction={inventory.canEquipMore() ? handleEquip : handleDelete} actionLabel={inventory.canEquipMore() ? "Equip" : "Delete"} />
                 ))}
               </div>
+              {stowedDrones.length > 0 && (
+                <>
+                  <h2 className="text-2xl font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2 mt-6">STOWED DRONES</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {stowedDrones.map(invDrone => (
+                      <DroneCard key={invDrone.droneType} droneType={invDrone.droneType} onAction={inventory.canEquipMoreDrones() ? handleEquipDrone : handleDeleteDrone} actionLabel={inventory.canEquipMoreDrones() ? "Equip" : "Delete"} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <p className="mt-4 text-slate-400 text-sm">Press 'I' to close</p>
@@ -692,6 +736,62 @@ const WeaponCard = ({ weapon, onAction, actionLabel }: WeaponCardProps) => {
           <p className="text-xs text-slate-300">{hoveredPerk.description}</p>
         </div>
       )}
+    </div>
+  );
+};
+
+interface DroneCardProps {
+  droneType: import('./types/game').DroneType;
+  onAction: (droneType: import('./types/game').DroneType) => void;
+  actionLabel: string;
+}
+
+const DroneCard = ({ droneType, onAction, actionLabel }: DroneCardProps) => {
+  const droneDef = DRONE_DEFINITIONS[droneType];
+  
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-2.5 flex flex-col justify-between relative">
+      <div>
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: droneDef.color, boxShadow: `0 0 10px ${droneDef.color}` }}
+            />
+            <div className="min-w-0 flex-1">
+              <h4 className="font-semibold text-sm text-white truncate">{droneDef.name}</h4>
+            </div>
+          </div>
+          <Cpu className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+        </div>
+        <p className="text-[10px] text-slate-400 mb-2">{droneDef.description}</p>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] mb-2">
+          <p><span className="text-slate-500">HP:</span> <span className="font-medium text-green-400">{droneDef.health}</span></p>
+          <p><span className="text-slate-500">DMG:</span> <span className="font-medium text-red-400">{droneDef.damage}</span></p>
+          <p><span className="text-slate-500">Range:</span> <span className="font-medium text-cyan-400">{droneDef.detectionRadius}</span></p>
+          <p><span className="text-slate-500">Fire:</span> <span className="font-medium text-yellow-400">{(1/droneDef.fireRate).toFixed(1)}/s</span></p>
+        </div>
+        {droneDef.passiveEffect && (
+          <div className="bg-cyan-900/20 border border-cyan-500/30 rounded px-2 py-1 mb-1.5">
+            <p className="text-[9px] text-cyan-300 font-medium">
+              <span className="text-slate-400">Passive:</span> {droneDef.passiveEffect}
+            </p>
+          </div>
+        )}
+        {droneDef.activeEffect && (
+          <div className="bg-purple-900/20 border border-purple-500/30 rounded px-2 py-1">
+            <p className="text-[9px] text-purple-300 font-medium">
+              <span className="text-slate-400">Active:</span> {droneDef.activeEffect}
+            </p>
+          </div>
+        )}
+      </div>
+      <button
+        onClick={() => onAction(droneType)}
+        className="mt-2 w-full text-center py-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-xs font-semibold transition-colors"
+      >
+        {actionLabel}
+      </button>
     </div>
   );
 };

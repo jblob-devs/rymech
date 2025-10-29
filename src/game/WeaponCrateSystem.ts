@@ -10,6 +10,16 @@ export interface WeaponCrate {
   perks: (WeaponPerk | GrapplingHookPerk)[];
 }
 
+const MELEE_WEAPON_TYPES: WeaponType[] = [
+  'void_blade',
+  'crimson_scythe',
+  'titan_hammer',
+  'flowing_glaive',
+  'shadow_daggers',
+  'berserker_axe',
+  'guardian_blade',
+];
+
 export class WeaponCrateSystem {
   generateWeaponCrate(): WeaponCrate {
     const weaponTypes = Object.keys(WEAPON_DEFINITIONS) as WeaponType[];
@@ -39,8 +49,14 @@ export class WeaponCrateSystem {
       weapon.grapplingStats = stats;
       weapon.maxRange = stats.maxRange;
       weapon.fireRate = stats.cooldown;
+    } else if (MELEE_WEAPON_TYPES.includes(randomType)) {
+      const meleePerks = getRandomPerks(perkCount, 'melee');
+      perks = meleePerks;
+      meleePerks.forEach((perk) => {
+        weapon = applyPerkToWeapon(weapon, perk);
+      });
     } else {
-      const weaponPerks = getRandomPerks(perkCount);
+      const weaponPerks = getRandomPerks(perkCount, 'ranged');
       perks = weaponPerks;
       weaponPerks.forEach((perk) => {
         weapon = applyPerkToWeapon(weapon, perk);

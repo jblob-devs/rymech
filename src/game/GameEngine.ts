@@ -3269,6 +3269,24 @@ export class GameEngine {
     this.syncEquippedWeapons();
   }
 
+  equipDrone(droneType: import('../types/game').DroneType): boolean {
+    const success = this.inventory.equipDrone(droneType);
+    if (success) {
+      this.syncDrones();
+    }
+    return success;
+  }
+
+  unequipDrone(droneType: import('../types/game').DroneType): void {
+    this.inventory.unequipDrone(droneType);
+    this.syncDrones();
+  }
+
+  deleteDrone(droneType: import('../types/game').DroneType): void {
+    this.inventory.removeDrone(droneType);
+    this.syncDrones();
+  }
+
   private syncEquippedWeapons(): void {
     this.gameState.player.equippedWeapons = this.inventory.getEquippedWeapons().map(weapon => {
       if (weapon.type === 'grappling_hook' && weapon.grapplingStats) {
