@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { X, Package } from 'lucide-react';
-import { Player, Consumable } from '../types/game';
+import { Player, Consumable, DroneType } from '../types/game';
 import { CraftingSystem } from '../game/CraftingSystem';
 import ResourceIcon from './ResourceIcon';
 import PatternVisualizer from './PatternVisualizer';
+import { PlayerInventory } from '../game/PlayerInventory';
 
 interface CraftingMenuProps {
   isOpen: boolean;
   onClose: () => void;
   player: Player;
   craftingSystem: CraftingSystem;
+  inventory: PlayerInventory;
   onUseConsumable: (consumableId: string) => void;
 }
 
@@ -58,6 +60,7 @@ export default function CraftingMenu({
   onClose,
   player,
   craftingSystem,
+  inventory,
   onUseConsumable,
 }: CraftingMenuProps) {
   const [craftingGrid, setCraftingGrid] = useState<(string[] | null)[][]>([
@@ -112,7 +115,9 @@ export default function CraftingMenu({
   const handleCraft = () => {
     const result = craftingSystem.craftFromGrid(player, craftingGrid);
     if (result) {
-      if (result.stackable) {
+      if (typeof result === 'string') {
+        inventory.addDrone(result as DroneType);
+      } else if (result.stackable) {
         const existingStack = player.consumables.find(
           (c) => c.name === result.name && c.stackable
         );
@@ -142,7 +147,9 @@ export default function CraftingMenu({
   const handleCraftRecipe = (recipeId: string) => {
     const result = craftingSystem.craftItem(player, recipeId);
     if (result) {
-      if (result.stackable) {
+      if (typeof result === 'string') {
+        inventory.addDrone(result as DroneType);
+      } else if (result.stackable) {
         const existingStack = player.consumables.find(
           (c) => c.name === result.name && c.stackable
         );

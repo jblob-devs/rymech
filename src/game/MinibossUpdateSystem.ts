@@ -75,13 +75,44 @@ export class MinibossUpdateSystem {
         miniboss.velocity = createVector(0, 0);
       }
     } else if (!miniboss.isSubmerged) {
-      const dir = vectorSubtract(playerPos, miniboss.position);
-      const normalized = vectorNormalize(dir);
-      const targetVelocity = vectorScale(normalized, miniboss.speed);
+      miniboss.behaviorTimer = (miniboss.behaviorTimer || 0) + dt;
+      
+      const optimalRange = this.getOptimalRange(miniboss);
+      const tooCloseRange = optimalRange * 0.5;
+      const tooFarRange = optimalRange * 1.5;
+      
+      let targetVelocity: Vector2;
+      
+      if (miniboss.telegraphTimer && miniboss.telegraphTimer > 0) {
+        const slowFactor = 0.3;
+        const dir = vectorSubtract(playerPos, miniboss.position);
+        const normalized = vectorNormalize(dir);
+        targetVelocity = vectorScale(normalized, miniboss.speed * slowFactor);
+      } else if (distance < tooCloseRange) {
+        const retreatDir = vectorSubtract(miniboss.position, playerPos);
+        const normalized = vectorNormalize(retreatDir);
+        const angle = Math.atan2(normalized.y, normalized.x) + (Math.sin(miniboss.behaviorTimer * 2) * 0.5);
+        targetVelocity = {
+          x: Math.cos(angle) * miniboss.speed * 0.8,
+          y: Math.sin(angle) * miniboss.speed * 0.8
+        };
+      } else if (distance > tooFarRange) {
+        const dir = vectorSubtract(playerPos, miniboss.position);
+        const normalized = vectorNormalize(dir);
+        targetVelocity = vectorScale(normalized, miniboss.speed * 1.2);
+      } else {
+        const dir = vectorSubtract(playerPos, miniboss.position);
+        const angle = Math.atan2(dir.y, dir.x) + (Math.PI / 2) * Math.sin(miniboss.behaviorTimer);
+        const circleRadius = 0.7;
+        targetVelocity = {
+          x: (Math.cos(angle) * circleRadius + dir.x / distance * (1 - circleRadius)) * miniboss.speed,
+          y: (Math.sin(angle) * circleRadius + dir.y / distance * (1 - circleRadius)) * miniboss.speed
+        };
+      }
       
       miniboss.velocity = vectorAdd(
-        vectorScale(miniboss.velocity, 0.9),
-        vectorScale(targetVelocity, 0.1)
+        vectorScale(miniboss.velocity, 0.85),
+        vectorScale(targetVelocity, 0.15)
       );
     }
 
@@ -161,6 +192,31 @@ export class MinibossUpdateSystem {
 
     if (miniboss.orbitalProjectiles && miniboss.orbitalProjectiles.length > 0) {
       miniboss.orbitalAngle = (miniboss.orbitalAngle || 0) + dt * 2;
+    }
+  }
+
+  private getOptimalRange(miniboss: Enemy): number {
+    if (!miniboss.minibossSubtype) return 150;
+    
+    switch (miniboss.minibossSubtype) {
+      case 'angulodon':
+        return 120;
+      case 'cryostag_vanguard':
+        return 200;
+      case 'pyroclast_behemoth':
+        return 180;
+      case 'mirelurker_matron':
+        return 220;
+      case 'prism_guardian':
+        return 250;
+      case 'null_siren':
+        return 200;
+      case 'solstice_warden':
+        return 190;
+      case 'rift_revenant':
+        return 210;
+      default:
+        return 150;
     }
   }
 

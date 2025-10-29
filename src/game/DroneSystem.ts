@@ -20,6 +20,9 @@ export interface DroneDefinition {
   specialAbility?: string;
   shieldStrength?: number;
   repairRate?: number;
+  passiveEffect?: string;
+  activeEffect?: string;
+  effectCooldown?: number;
 }
 
 export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
@@ -39,6 +42,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSpeed: 12,
     projectileSize: 6,
     projectileColor: '#f87171',
+    passiveEffect: '+15% player damage when active',
+    activeEffect: 'Burst fire mode for 3 seconds',
+    effectCooldown: 12,
   },
   shield_drone: {
     type: 'shield_drone',
@@ -58,6 +64,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#60a5fa',
     specialAbility: 'shield',
     shieldStrength: 50,
+    passiveEffect: 'Absorbs 20% of damage taken',
+    activeEffect: 'Emergency shield bubble for 5 seconds',
+    effectCooldown: 20,
   },
   repair_drone: {
     type: 'repair_drone',
@@ -77,6 +86,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#34d399',
     specialAbility: 'repair',
     repairRate: 2,
+    passiveEffect: 'Regenerates 2 HP per second',
+    activeEffect: 'Instant heal burst (30 HP)',
+    effectCooldown: 15,
   },
   scout_drone: {
     type: 'scout_drone',
@@ -94,6 +106,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSpeed: 15,
     projectileSize: 5,
     projectileColor: '#fbbf24',
+    passiveEffect: '+50% detection range, reveals cloaked enemies',
+    activeEffect: 'Marks all enemies for 8 seconds (+20% damage)',
+    effectCooldown: 18,
   },
   plasma_drone: {
     type: 'plasma_drone',
@@ -112,6 +127,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 8,
     projectileColor: '#a78bfa',
     specialAbility: 'piercing',
+    passiveEffect: 'Projectiles pierce through enemies',
+    activeEffect: 'Overcharge: Triple damage shots for 4 seconds',
+    effectCooldown: 14,
   },
   cryo_drone: {
     type: 'cryo_drone',
@@ -130,6 +148,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 7,
     projectileColor: '#22d3ee',
     specialAbility: 'slow',
+    passiveEffect: 'Slows hit enemies by 30% for 2 seconds',
+    activeEffect: 'Freeze wave: Freeze all nearby enemies for 3 seconds',
+    effectCooldown: 16,
   },
   explosive_drone: {
     type: 'explosive_drone',
@@ -148,6 +169,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 9,
     projectileColor: '#fb923c',
     specialAbility: 'explosive',
+    passiveEffect: 'Explosions deal 150% AoE damage',
+    activeEffect: 'Carpet bomb: Rapid fire explosives for 4 seconds',
+    effectCooldown: 18,
   },
   emp_drone: {
     type: 'emp_drone',
@@ -166,6 +190,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 6,
     projectileColor: '#fde047',
     specialAbility: 'emp',
+    passiveEffect: 'Disables enemy shields on hit',
+    activeEffect: 'EMP blast: Stuns all enemies in range for 4 seconds',
+    effectCooldown: 24,
   },
   sniper_drone: {
     type: 'sniper_drone',
@@ -184,6 +211,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 5,
     projectileColor: '#94a3b8',
     specialAbility: 'precision',
+    passiveEffect: '30% critical hit chance for bonus damage',
+    activeEffect: 'Perfect shot: Next shot deals 500% damage',
+    effectCooldown: 10,
   },
   laser_drone: {
     type: 'laser_drone',
@@ -202,6 +232,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 4,
     projectileColor: '#f472b6',
     specialAbility: 'beam',
+    passiveEffect: 'Continuous laser beam, damage ramps up over time',
+    activeEffect: 'Overload: 3x beam width and damage for 5 seconds',
+    effectCooldown: 15,
   },
   swarm_drone: {
     type: 'swarm_drone',
@@ -220,6 +253,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 3,
     projectileColor: '#2dd4bf',
     specialAbility: 'swarm',
+    passiveEffect: 'Each shot splits into 3 mini-drones',
+    activeEffect: 'Deploy swarm: 20 mini-drones attack all enemies',
+    effectCooldown: 20,
   },
   gravity_drone: {
     type: 'gravity_drone',
@@ -238,6 +274,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 10,
     projectileColor: '#818cf8',
     specialAbility: 'gravity',
+    passiveEffect: 'Slows nearby enemies by 15%',
+    activeEffect: 'Black hole: Pulls all enemies to center',
+    effectCooldown: 25,
   },
   medic_drone: {
     type: 'medic_drone',
@@ -257,6 +296,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#4ade80',
     specialAbility: 'medic',
     repairRate: 4,
+    passiveEffect: 'Regenerates 4 HP/sec + 10% shield regen',
+    activeEffect: 'Revive: Restore 50% HP instantly',
+    effectCooldown: 30,
   },
   tesla_drone: {
     type: 'tesla_drone',
@@ -275,6 +317,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 6,
     projectileColor: '#60a5fa',
     specialAbility: 'chain',
+    passiveEffect: 'Lightning chains to 3 nearby enemies',
+    activeEffect: 'Tesla storm: Continuous chain lightning for 6 seconds',
+    effectCooldown: 22,
   },
   void_drone: {
     type: 'void_drone',
@@ -293,6 +338,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSize: 8,
     projectileColor: '#a78bfa',
     specialAbility: 'void',
+    passiveEffect: 'Projectiles ignore obstacles and terrain',
+    activeEffect: 'Void rift: Creates damaging portal for 5 seconds',
+    effectCooldown: 20,
   },
 };
 

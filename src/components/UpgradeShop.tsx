@@ -1,11 +1,12 @@
-import { X, ShoppingCart, Package, Trash2 } from 'lucide-react';
+import { X, ShoppingCart, Package, Trash2, Cpu } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { GameState } from '../types/game';
+import { GameState, DroneType } from '../types/game';
 import { useState } from 'react';
 import { WeaponCrate, WeaponCrateSystem } from '../game/WeaponCrateSystem';
 import { getRarityColor } from '../game/WeaponPerks';
 import { PlayerInventory } from '../game/PlayerInventory';
 import { MELEE_FORMS } from '../game/MeleeWeaponForms';
+import { DRONE_DEFINITIONS } from '../game/DroneSystem';
 
 interface UpgradeShopProps {
   gameState: GameState;
@@ -14,6 +15,9 @@ interface UpgradeShopProps {
   onEquipWeapon: (weaponId: string) => void;
   onUnequipWeapon: (weaponId: string) => void;
   onDeleteWeapon: (weaponId: string) => void;
+  onEquipDrone: (droneType: DroneType) => void;
+  onUnequipDrone: (droneType: DroneType) => void;
+  onDeleteDrone: (droneType: DroneType) => void;
   onClose: () => void;
 }
 
@@ -24,6 +28,9 @@ export default function UpgradeShop({
   onEquipWeapon,
   onUnequipWeapon,
   onDeleteWeapon,
+  onEquipDrone,
+  onUnequipDrone,
+  onDeleteDrone,
   onClose
 }: UpgradeShopProps) {
   const { player } = gameState;
@@ -50,6 +57,13 @@ export default function UpgradeShop({
 
   const equippedWeapons = weapons.filter(w => w.equipped);
   const stowedWeapons = weapons.filter(w => !w.equipped);
+
+  const drones = inventory.getDrones();
+  const equippedDroneCount = drones.filter((d) => d.equipped).length;
+  const maxEquippedDrones = inventory.getMaxEquippedDrones();
+
+  const equippedDrones = drones.filter(d => d.equipped);
+  const stowedDrones = drones.filter(d => !d.equipped);
 
   const renderIcon = (iconName: string) => {
     const Icon = (LucideIcons as any)[iconName.split('-').map((word: string) =>
@@ -407,6 +421,168 @@ export default function UpgradeShop({
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-slate-800/50 border-2 border-slate-700 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-cyan-300 flex items-center gap-2">
+                <Cpu className="w-5 h-5" />
+                Your Drones ({drones.length} drones)
+              </h3>
+              <div className="text-sm text-slate-400">
+                Equipped: <span className="text-cyan-400 font-bold">{equippedDroneCount}/{maxEquippedDrones}</span>
+              </div>
+            </div>
+
+            {drones.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">
+                <Cpu className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No drones yet. Craft drones to deploy them!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-cyan-300 uppercase">Equipped Drones</h4>
+                  
+                  {Array.from({ length: maxEquippedDrones }).map((_, slotIndex) => {
+                    const equippedDrone = equippedDrones[slotIndex];
+                    const droneDefinition = equippedDrone ? DRONE_DEFINITIONS[equippedDrone.droneType] : null;
+
+                    return (
+                      <div key={slotIndex} className="relative">
+                        <div
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            equippedDrone
+                              ? 'bg-cyan-900/20 border-cyan-500/50'
+                              : 'bg-slate-900/10 border-slate-700 border-dashed'
+                          }`}
+                        >
+                          {equippedDrone && droneDefinition ? (
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <div className="bg-cyan-500/20 border border-cyan-500/30 rounded px-2 py-1 text-xs font-bold text-cyan-300">
+                                    SLOT {slotIndex + 1}
+                                  </div>
+                                  <div
+                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: droneDefinition.color, boxShadow: `0 0 10px ${droneDefinition.color}` }}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="font-semibold text-white text-sm truncate">{droneDefinition.name}</h4>
+                                    <p className="text-[10px] text-slate-400 truncate">{droneDefinition.description}</p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => onUnequipDrone(equippedDrone.droneType)}
+                                  className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                                >
+                                  Unequip
+                                </button>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-red-400 font-bold">{droneDefinition.damage.toFixed(0)}</div>
+                                  <div className="text-slate-500">DMG</div>
+                                </div>
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-green-400 font-bold">{droneDefinition.health.toFixed(0)}</div>
+                                  <div className="text-slate-500">HP</div>
+                                </div>
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-cyan-400 font-bold">{(1/droneDefinition.fireRate).toFixed(1)}</div>
+                                  <div className="text-slate-500">RoF</div>
+                                </div>
+                              </div>
+                              
+                              {droneDefinition.specialAbility && (
+                                <div className="mt-2 bg-purple-900/20 border border-purple-500/30 rounded p-2">
+                                  <span className="text-purple-400 font-bold text-[10px]">Special: {droneDefinition.specialAbility}</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-slate-500 text-sm">
+                              <div className="font-bold mb-1">SLOT {slotIndex + 1}</div>
+                              <div className="text-xs">Empty - Equip a drone from stowed</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {stowedDrones.length > 0 && (
+                  <div className="space-y-3 mt-6">
+                    <h4 className="text-sm font-bold text-slate-400 uppercase">Stowed Drones (Not Equipped)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {stowedDrones.map(({ droneType }) => {
+                        const droneDefinition = DRONE_DEFINITIONS[droneType];
+                        return (
+                          <div key={droneType} className="space-y-2">
+                            <div className="p-3 rounded-lg border-2 bg-slate-900/30 border-slate-700 transition-all">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2 flex-1">
+                                  <div
+                                    className="w-3 h-3 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: droneDefinition.color, boxShadow: `0 0 10px ${droneDefinition.color}` }}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="font-semibold text-white text-sm truncate">{droneDefinition.name}</h4>
+                                    <p className="text-[10px] text-slate-400 truncate">{droneDefinition.description}</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-1.5 mb-2 text-[10px]">
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-red-400 font-bold">{droneDefinition.damage.toFixed(0)}</div>
+                                  <div className="text-slate-500">DMG</div>
+                                </div>
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-green-400 font-bold">{droneDefinition.health.toFixed(0)}</div>
+                                  <div className="text-slate-500">HP</div>
+                                </div>
+                                <div className="bg-slate-800/50 p-1 rounded text-center">
+                                  <div className="text-cyan-400 font-bold">{(1/droneDefinition.fireRate).toFixed(1)}</div>
+                                  <div className="text-slate-500">RoF</div>
+                                </div>
+                              </div>
+
+                              {droneDefinition.specialAbility && (
+                                <div className="mb-2 bg-purple-900/20 border border-purple-500/30 rounded p-2">
+                                  <span className="text-purple-400 font-bold text-[10px]">Special: {droneDefinition.specialAbility}</span>
+                                </div>
+                              )}
+
+                              <div className="flex gap-2">
+                                {inventory.canEquipMoreDrones() && (
+                                  <button
+                                    onClick={() => onEquipDrone(droneType)}
+                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-900 px-3 py-1.5 rounded text-xs font-bold transition-all"
+                                  >
+                                    Equip
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => onDeleteDrone(droneType)}
+                                  className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center justify-center gap-1"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
