@@ -12,6 +12,7 @@ import { BiomeFeatureRenderer } from '../game/BiomeFeatureRenderer';
 import { ResourceIconRenderer } from '../game/ResourceIconRenderer';
 import { renderVoidSubdivider } from '../game/VoidSubdividerRenderer';
 import { renderMiniboss } from '../game/MinibossRenderer';
+import { DroneRenderer } from '../game/DroneRenderer';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -39,6 +40,7 @@ export default function GameCanvas({
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const featureRendererRef = useRef<BiomeFeatureRenderer>(new BiomeFeatureRenderer());
+  const droneRendererRef = useRef<DroneRenderer>(new DroneRenderer());
   const lastFrameTimeRef = useRef<number>(performance.now());
 
   useEffect(() => {
@@ -1449,112 +1451,7 @@ export default function GameCanvas({
 
   const drawDrone = (ctx: CanvasRenderingContext2D, drone: Drone, camera: Camera) => {
     if (!camera.isInView(drone.position, 100)) return;
-
-    const screenPos = camera.worldToScreen(drone.position);
-
-    ctx.save();
-    ctx.translate(screenPos.x, screenPos.y);
-    ctx.rotate(drone.rotation);
-
-    if (drone.droneType === 'assault_drone') {
-      ctx.fillStyle = drone.color;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = drone.color;
-      ctx.beginPath();
-      ctx.moveTo(drone.size / 2, 0);
-      ctx.lineTo(-drone.size / 2, -drone.size / 2);
-      ctx.lineTo(-drone.size / 3, 0);
-      ctx.lineTo(-drone.size / 2, drone.size / 2);
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.fillStyle = drone.secondaryColor;
-      ctx.fillRect(-drone.size / 4, -1, drone.size / 3, 2);
-    } else if (drone.droneType === 'shield_drone') {
-      ctx.fillStyle = drone.color;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = drone.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, drone.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-      
-      if (drone.shieldActive) {
-        ctx.strokeStyle = drone.secondaryColor;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        ctx.arc(0, 0, drone.size * 0.75, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-      }
-    } else if (drone.droneType === 'repair_drone') {
-      ctx.fillStyle = drone.color;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = drone.color;
-      ctx.beginPath();
-      for (let i = 0; i < 4; i++) {
-        const angle = (i * Math.PI * 2) / 4;
-        const x = Math.cos(angle) * drone.size / 2;
-        const y = Math.sin(angle) * drone.size / 2;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-drone.size / 4, -1, drone.size / 2, 2);
-      ctx.fillRect(-1, -drone.size / 4, 2, drone.size / 2);
-    } else if (drone.droneType === 'scout_drone') {
-      ctx.fillStyle = drone.color;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = drone.color;
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const angle = (i * Math.PI * 2) / 3;
-        const x = Math.cos(angle) * drone.size / 2;
-        const y = Math.sin(angle) * drone.size / 2;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.strokeStyle = drone.secondaryColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, drone.size * 0.3, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    ctx.shadowBlur = 0;
-    ctx.restore();
-
-    const healthBarWidth = drone.size * 1.2;
-    const healthBarHeight = 2;
-    const healthPercent = drone.health / drone.maxHealth;
-
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
-    ctx.fillRect(
-      screenPos.x - healthBarWidth / 2,
-      screenPos.y - drone.size / 2 - 6,
-      healthBarWidth,
-      healthBarHeight
-    );
-
-    ctx.fillStyle = drone.color;
-    ctx.fillRect(
-      screenPos.x - healthBarWidth / 2,
-      screenPos.y - drone.size / 2 - 6,
-      healthBarWidth * healthPercent,
-      healthBarHeight
-    );
+    droneRendererRef.current.renderDrone(ctx, drone, camera);
   };
 
   const drawModifierTags = (ctx: CanvasRenderingContext2D, enemy: any, camera: Camera) => {

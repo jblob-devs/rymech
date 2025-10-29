@@ -3317,20 +3317,8 @@ export class GameEngine {
       }
     );
 
-    const { healthRepaired, shieldAbsorbed } = this.droneSystem.applyDroneSpecialAbilities(
-      this.gameState.drones,
-      player.health,
-      player.maxHealth,
-      dt
-    );
-
-    if (healthRepaired > 0 && player.health < player.maxHealth) {
-      player.health = Math.min(player.health + healthRepaired, player.maxHealth);
-    }
-
-    player.shieldAbsorption = shieldAbsorbed;
-
-    this.gameState.drones = this.gameState.drones.filter(drone => drone.health > 0);
+    // Apply passive drone effects
+    this.applyDronePassiveEffects(dt);
   }
 
   private applyDamageToPlayer(damage: number, player: import('../types/game').Player = this.gameState.player): number {
@@ -3338,6 +3326,48 @@ export class GameEngine {
     const reducedDamage = Math.max(0, damage - shieldAbsorption);
     player.health -= reducedDamage;
     return reducedDamage;
+  }
+
+  private applyDronePassiveEffects(dt: number): void {
+    const player = this.gameState.player;
+    const drones = this.gameState.drones;
+
+    // Reset shield absorption each frame
+    player.shieldAbsorption = 0;
+
+    drones.forEach(drone => {
+      const definition = this.droneSystem.getDroneDefinition(drone.droneType);
+      
+      // Apply passive effects based on drone type
+      switch (drone.droneType) {
+        case 'repair_drone':
+        case 'medic_drone':
+          // Regenerate health over time
+          if (player.health < player.maxHealth && definition.passiveEffectValue) {
+            player.health = Math.min(
+              player.maxHealth,
+              player.health + (definition.passiveEffectValue * dt)
+            );
+          }
+          break;
+
+        case 'shield_drone':
+          // Absorb damage
+          if (definition.passiveEffectValue) {
+            player.shieldAbsorption = (player.shieldAbsorption || 0) + (player.maxHealth * definition.passiveEffectValue);
+          }
+          break;
+
+        case 'gravity_drone':
+          // Slow nearby enemies (handled in enemy update loop elsewhere, just flag it here)
+          // This would need to be implemented in enemy movement code
+          break;
+
+        // Other passive effects can be added here as needed
+        default:
+          break;
+      }
+    });
   }
 
   private syncDrones(): void {
