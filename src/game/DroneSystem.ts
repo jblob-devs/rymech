@@ -415,6 +415,8 @@ export class DroneSystem {
       detectionRadius: definition.detectionRadius,
       activeEffectCooldown: definition.activeEffectCooldown || 0,
       activeEffectTimer: 0,
+      isActiveEffectActive: false,
+      activeEffectRemainingTime: 0,
     };
   }
 

@@ -10,6 +10,7 @@ import TouchControls from './components/TouchControls';
 import ConnectionMenu from './components/ConnectionMenu';
 import { MultiplayerManager } from './game/MultiplayerManager';
 import { DRONE_DEFINITIONS } from './game/DroneSystem';
+import { DroneAbilities } from './components/DroneAbilities';
 
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -153,6 +154,22 @@ function App() {
       if (key >= '1' && key <= '9') {
         gameEngineRef.current.switchWeapon(parseInt(key) - 1);
       }
+      
+      const manualDrones = gameEngineRef.current.getState().drones.filter(drone => {
+        const def = DRONE_DEFINITIONS[drone.droneType];
+        return def.activeTrigger === 'manual' && def.activeEffect;
+      });
+      
+      if (key === 'q' && manualDrones[0]) {
+        gameEngineRef.current.manuallyActivateDroneAbility(manualDrones[0].droneType);
+      }
+      if (key === 'e' && manualDrones[1]) {
+        gameEngineRef.current.manuallyActivateDroneAbility(manualDrones[1].droneType);
+      }
+      if (key === 'r' && manualDrones[2]) {
+        gameEngineRef.current.manuallyActivateDroneAbility(manualDrones[2].droneType);
+      }
+      
       gameEngineRef.current.setKeys(prev => new Set(prev).add(key));
     };
 
@@ -283,6 +300,17 @@ function App() {
             : undefined
         }
       />
+
+      {!gameState.isPaused && (
+        <DroneAbilities
+          drones={gameState.drones}
+          onManualActivate={(droneType) => {
+            if (gameEngineRef.current) {
+              gameEngineRef.current.manuallyActivateDroneAbility(droneType);
+            }
+          }}
+        />
+      )}
 
       <div className="absolute top-4 right-4 flex flex-col items-end space-y-4 z-10">
         <Minimap
@@ -587,6 +615,7 @@ function App() {
         }}
         player={gameState.player}
         craftingSystem={gameEngineRef.current.getCraftingSystem()}
+        inventory={gameEngineRef.current.getInventory()}
         onUseConsumable={handleUseConsumable}
       />
 
@@ -766,10 +795,10 @@ const DroneCard = ({ droneType, onAction, actionLabel }: DroneCardProps) => {
         </div>
         <p className="text-[10px] text-slate-400 mb-2">{droneDef.description}</p>
         <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] mb-2">
-          <p><span className="text-slate-500">HP:</span> <span className="font-medium text-green-400">{droneDef.health}</span></p>
-          <p><span className="text-slate-500">DMG:</span> <span className="font-medium text-red-400">{droneDef.damage}</span></p>
+          <p><span className="text-slate-500">DMG:</span> <span className="font-medium text-red-400">{droneDef.damage || 'N/A'}</span></p>
           <p><span className="text-slate-500">Range:</span> <span className="font-medium text-cyan-400">{droneDef.detectionRadius}</span></p>
-          <p><span className="text-slate-500">Fire:</span> <span className="font-medium text-yellow-400">{(1/droneDef.fireRate).toFixed(1)}/s</span></p>
+          <p><span className="text-slate-500">Fire:</span> <span className="font-medium text-yellow-400">{droneDef.fireRate > 0 ? (1/droneDef.fireRate).toFixed(1) + '/s' : 'N/A'}</span></p>
+          <p><span className="text-slate-500">Shape:</span> <span className="font-medium text-purple-400">{droneDef.shape}</span></p>
         </div>
         {droneDef.passiveEffect && (
           <div className="bg-cyan-900/20 border border-cyan-500/30 rounded px-2 py-1 mb-1.5">

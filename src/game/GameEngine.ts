@@ -123,6 +123,12 @@ export class GameEngine {
       this.inventory.equipWeapon(weaponWithPerks.id);
     });
     this.syncEquippedWeapons();
+    
+    this.inventory.addDrone('assault_drone');
+    this.inventory.addDrone('shield_drone');
+    this.inventory.addDrone('repair_drone');
+    this.inventory.equipDrone('assault_drone');
+    this.inventory.equipDrone('shield_drone');
     this.syncDrones();
 
     this.loadChunksAroundPlayer();
@@ -1202,6 +1208,8 @@ export class GameEngine {
 
       this.gameState.projectiles.push(projectile);
     }
+    
+    this.triggerDroneActiveAbilities('shoot');
   }
 
   private updateEnemies(dt: number): void {
@@ -3223,12 +3231,14 @@ export class GameEngine {
       player.isDashing = true;
       player.dashCooldown = PLAYER_DASH_COOLDOWN;
       this.createParticles(player.position, 15, '#00ffff', 0.4);
+      this.triggerDroneActiveAbilities('dash');
     }
   }
 
   switchWeapon(index: number): void {
     if (index >= 0 && index < this.gameState.player.equippedWeapons.length) {
       this.gameState.player.activeWeaponIndex = index;
+      this.triggerDroneActiveAbilities('weaponSwap');
     }
   }
 
@@ -3317,7 +3327,7 @@ export class GameEngine {
       }
     );
 
-    // Apply passive drone effects
+    this.updateDroneActiveEffects(dt);
     this.applyDronePassiveEffects(dt);
   }
 
@@ -3325,24 +3335,88 @@ export class GameEngine {
     const shieldAbsorption = player.shieldAbsorption || 0;
     const reducedDamage = Math.max(0, damage - shieldAbsorption);
     player.health -= reducedDamage;
+    if (reducedDamage > 0 && player === this.gameState.player) {
+      this.triggerDroneActiveAbilities('takeDamage');
+    }
     return reducedDamage;
+  }
+
+  private updateDroneActiveEffects(dt: number): void {
+    this.gameState.drones.forEach(drone => {
+      const definition = this.droneSystem.getDroneDefinition(drone.droneType);
+      
+      if (drone.activeEffectTimer > 0) {
+        drone.activeEffectTimer -= dt;
+      }
+      
+      if (drone.isActiveEffectActive && drone.activeEffectRemainingTime !== undefined) {
+        drone.activeEffectRemainingTime -= dt;
+        if (drone.activeEffectRemainingTime <= 0) {
+          drone.isActiveEffectActive = false;
+          drone.activeEffectRemainingTime = 0;
+        }
+      }
+    });
+  }
+
+  triggerDroneActiveAbilities(trigger: 'shoot' | 'dash' | 'weaponSwap' | 'takeDamage'): void {
+    const player = this.gameState.player;
+    
+    this.gameState.drones.forEach(drone => {
+      const definition = this.droneSystem.getDroneDefinition(drone.droneType);
+      
+      if (definition.activeTrigger === trigger && drone.activeEffectTimer <= 0) {
+        this.activateDroneAbility(drone, definition, player);
+      }
+    });
+  }
+
+  manuallyActivateDroneAbility(droneType: import('../types/game').DroneType): void {
+    const player = this.gameState.player;
+    const drone = this.gameState.drones.find(d => d.droneType === droneType);
+    
+    if (drone && drone.activeEffectTimer <= 0) {
+      const definition = this.droneSystem.getDroneDefinition(drone.droneType);
+      if (definition.activeTrigger === 'manual') {
+        this.activateDroneAbility(drone, definition, player);
+      }
+    }
+  }
+
+  private activateDroneAbility(
+    drone: Drone, 
+    definition: any, 
+    player: import('../types/game').Player
+  ): void {
+    drone.isActiveEffectActive = true;
+    drone.activeEffectRemainingTime = definition.activeEffectDuration || 0;
+    drone.activeEffectTimer = definition.activeEffectCooldown || 0;
+
+    switch (drone.droneType) {
+      case 'repair_drone':
+        player.health = Math.min(player.maxHealth, player.health + 30);
+        break;
+      case 'medic_drone':
+        player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.5);
+        break;
+    }
   }
 
   private applyDronePassiveEffects(dt: number): void {
     const player = this.gameState.player;
     const drones = this.gameState.drones;
 
-    // Reset shield absorption each frame
     player.shieldAbsorption = 0;
+    player.damageBoost = 1.0;
+    player.critChance = 0;
+    player.detectionRangeBoost = 0;
 
     drones.forEach(drone => {
       const definition = this.droneSystem.getDroneDefinition(drone.droneType);
       
-      // Apply passive effects based on drone type
       switch (drone.droneType) {
         case 'repair_drone':
         case 'medic_drone':
-          // Regenerate health over time
           if (player.health < player.maxHealth && definition.passiveEffectValue) {
             player.health = Math.min(
               player.maxHealth,
@@ -3352,19 +3426,27 @@ export class GameEngine {
           break;
 
         case 'shield_drone':
-          // Absorb damage
           if (definition.passiveEffectValue) {
             player.shieldAbsorption = (player.shieldAbsorption || 0) + (player.maxHealth * definition.passiveEffectValue);
           }
           break;
 
-        case 'gravity_drone':
-          // Slow nearby enemies (handled in enemy update loop elsewhere, just flag it here)
-          // This would need to be implemented in enemy movement code
+        case 'assault_drone':
+          if (definition.passiveEffectValue) {
+            player.damageBoost = (player.damageBoost || 1.0) + definition.passiveEffectValue;
+          }
           break;
 
-        // Other passive effects can be added here as needed
-        default:
+        case 'sniper_drone':
+          if (definition.passiveEffectValue) {
+            player.critChance = (player.critChance || 0) + definition.passiveEffectValue;
+          }
+          break;
+
+        case 'scout_drone':
+          if (definition.passiveEffectValue) {
+            player.detectionRangeBoost = (player.detectionRangeBoost || 0) + definition.passiveEffectValue;
+          }
           break;
       }
     });
@@ -3372,7 +3454,8 @@ export class GameEngine {
 
   private syncDrones(): void {
     const player = this.gameState.player;
-    const equippedDroneTypes = player.equippedDrones || [];
+    const equippedDroneTypes = this.inventory.getEquippedDrones();
+    player.equippedDrones = equippedDroneTypes;
     const currentDrones = this.gameState.drones;
 
     const dronesById = new Map(currentDrones.map(d => [d.droneType, d]));

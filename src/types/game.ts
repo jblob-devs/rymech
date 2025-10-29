@@ -36,6 +36,9 @@ export interface Player extends Entity {
   health: number;
   maxHealth: number;
   shieldAbsorption?: number;
+  damageBoost?: number;
+  critChance?: number;
+  detectionRangeBoost?: number;
   speed: number;
   isDashing: boolean;
   dashCooldown: number;
@@ -124,6 +127,8 @@ export interface Drone extends Entity {
   hoverOffset?: Vector2;
   activeEffectCooldown: number;
   activeEffectTimer: number;
+  isActiveEffectActive?: boolean;
+  activeEffectRemainingTime?: number;
 }
 
 export interface Enemy extends Entity {
