@@ -3396,8 +3396,84 @@ export class GameEngine {
       case 'repair_drone':
         player.health = Math.min(player.maxHealth, player.health + 30);
         break;
+      
       case 'medic_drone':
-        player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.5);
+        // Create healing pool around player
+        if (!this.gameState.healingPools) {
+          this.gameState.healingPools = [];
+        }
+        this.gameState.healingPools.push({
+          id: `heal_${Date.now()}`,
+          position: { ...player.position },
+          radius: 150,
+          healPerSecond: 15,
+          lifetime: definition.activeEffectDuration || 6,
+          ownerId: player.id
+        });
+        break;
+      
+      case 'shield_drone':
+        // Temporary shield bubble
+        player.hasShieldBubble = true;
+        player.shieldBubbleEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
+        break;
+      
+      case 'sniper_drone':
+        // Tactical mode: slow movement, massive damage buff
+        player.sniperTacticalMode = true;
+        player.sniperModeEndTime = Date.now() + (definition.activeEffectDuration || 6) * 1000;
+        break;
+      
+      case 'cryo_drone':
+        // Ice Nova: Freeze nearby enemies
+        const cryoRadius = 300;
+        this.gameState.enemies.forEach(enemy => {
+          const dist = Math.sqrt(
+            Math.pow(enemy.position.x - player.position.x, 2) +
+            Math.pow(enemy.position.y - player.position.y, 2)
+          );
+          if (dist <= cryoRadius) {
+            enemy.isFrozen = true;
+            enemy.frozenEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
+          }
+        });
+        break;
+      
+      case 'emp_drone':
+        // EMP Blast: Stun nearby enemies
+        const empRadius = 350;
+        this.gameState.enemies.forEach(enemy => {
+          const dist = Math.sqrt(
+            Math.pow(enemy.position.x - player.position.x, 2) +
+            Math.pow(enemy.position.y - player.position.y, 2)
+          );
+          if (dist <= empRadius) {
+            enemy.isStunned = true;
+            enemy.stunnedEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
+          }
+        });
+        break;
+      
+      case 'swarm_drone':
+        // Deploy mini swarm drones
+        if (!this.gameState.swarmDrones) {
+          this.gameState.swarmDrones = [];
+        }
+        for (let i = 0; i < 20; i++) {
+          const angle = (i / 20) * Math.PI * 2;
+          this.gameState.swarmDrones.push({
+            id: `swarm_${Date.now()}_${i}`,
+            position: { 
+              x: player.position.x + Math.cos(angle) * 30,
+              y: player.position.y + Math.sin(angle) * 30
+            },
+            velocity: { x: 0, y: 0 },
+            rotation: angle,
+            lifetime: definition.activeEffectDuration || 6,
+            damage: 2,
+            ownerId: player.id
+          });
+        }
         break;
     }
   }

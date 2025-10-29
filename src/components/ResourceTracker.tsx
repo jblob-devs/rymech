@@ -1,5 +1,5 @@
 import { Player } from '../types/game';
-import { Package } from 'lucide-react';
+import { Package, DollarSign } from 'lucide-react';
 
 interface ResourceTrackerProps {
   player: Player;
@@ -24,7 +24,9 @@ export default function ResourceTracker({ player }: ResourceTrackerProps) {
     { name: 'Void Core', value: player.resources.voidCore, color: '#7c3aed' },
   ].filter(resource => resource.value > 0);
 
-  if (resources.length === 0) {
+  const hasResources = resources.length > 0 || player.currency > 0;
+
+  if (!hasResources) {
     return null;
   }
 
@@ -35,16 +37,27 @@ export default function ResourceTracker({ player }: ResourceTrackerProps) {
           <Package className="w-4 h-4 text-cyan-400" />
           <span className="text-xs font-bold text-slate-300">RESOURCES</span>
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 max-h-64 overflow-y-auto">
-          {resources.map((resource) => (
-            <div key={resource.name} className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 truncate">{resource.name}</span>
-              <span className="font-bold ml-2" style={{ color: resource.color }}>
-                {resource.value}
-              </span>
-            </div>
-          ))}
+        
+        <div className="mb-2 pb-2 border-b border-slate-700">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs text-slate-400">Currency</span>
+            <span className="text-sm font-bold text-yellow-300 ml-auto">{player.currency}</span>
+          </div>
         </div>
+
+        {resources.length > 0 && (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 max-h-64 overflow-y-auto">
+            {resources.map((resource) => (
+              <div key={resource.name} className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 truncate">{resource.name}</span>
+                <span className="font-bold ml-2" style={{ color: resource.color }}>
+                  {resource.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

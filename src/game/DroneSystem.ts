@@ -34,11 +34,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Assault Drone',
     description: 'Aggressive drone that fires rapid projectiles at enemies',
     canAttack: true,
-    damage: 15,
+    damage: 5,
     fireRate: 0.5,
-    orbitRadius: 60,
+    orbitRadius: 85,
     orbitSpeed: 2.0,
-    size: 12,
+    size: 7,
     shape: 'diamond',
     color: '#ef4444',
     secondaryColor: '#dc2626',
@@ -60,9 +60,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     canAttack: false,
     damage: 0,
     fireRate: 1.0,
-    orbitRadius: 50,
+    orbitRadius: 80,
     orbitSpeed: 1.5,
-    size: 14,
+    size: 8,
     shape: 'hexagon',
     color: '#3b82f6',
     secondaryColor: '#2563eb',
@@ -84,9 +84,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     canAttack: false,
     damage: 0,
     fireRate: 0,
-    orbitRadius: 55,
+    orbitRadius: 90,
     orbitSpeed: 1.8,
-    size: 11,
+    size: 7,
     shape: 'cross',
     color: '#10b981',
     secondaryColor: '#059669',
@@ -108,9 +108,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     canAttack: false,
     damage: 0,
     fireRate: 0,
-    orbitRadius: 70,
+    orbitRadius: 110,
     orbitSpeed: 3.0,
-    size: 10,
+    size: 6,
     shape: 'triangle',
     color: '#f59e0b',
     secondaryColor: '#d97706',
@@ -130,11 +130,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Plasma Drone',
     description: 'Fires superheated plasma bolts that pierce enemies',
     canAttack: true,
-    damage: 25,
+    damage: 8,
     fireRate: 1.2,
-    orbitRadius: 65,
+    orbitRadius: 95,
     orbitSpeed: 2.2,
-    size: 13,
+    size: 7,
     shape: 'diamond',
     color: '#8b5cf6',
     secondaryColor: '#7c3aed',
@@ -154,11 +154,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Cryo Drone',
     description: 'Slows enemies with freezing projectiles',
     canAttack: true,
-    damage: 12,
+    damage: 4,
     fireRate: 0.9,
-    orbitRadius: 60,
+    orbitRadius: 88,
     orbitSpeed: 1.9,
-    size: 12,
+    size: 7,
     shape: 'hexagon',
     color: '#06b6d4',
     secondaryColor: '#0891b2',
@@ -178,11 +178,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Explosive Drone',
     description: 'Launches explosive rounds that deal area damage',
     canAttack: true,
-    damage: 30,
+    damage: 10,
     fireRate: 1.8,
-    orbitRadius: 58,
+    orbitRadius: 86,
     orbitSpeed: 1.7,
-    size: 13,
+    size: 8,
     shape: 'square',
     color: '#f97316',
     secondaryColor: '#ea580c',
@@ -202,11 +202,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'EMP Drone',
     description: 'Disrupts enemy shields and systems',
     canAttack: true,
-    damage: 18,
+    damage: 6,
     fireRate: 1.1,
-    orbitRadius: 62,
+    orbitRadius: 92,
     orbitSpeed: 2.1,
-    size: 12,
+    size: 7,
     shape: 'cross',
     color: '#eab308',
     secondaryColor: '#ca8a04',
@@ -226,11 +226,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Sniper Drone',
     description: 'Precise long-range shots with high damage',
     canAttack: true,
-    damage: 45,
+    damage: 15,
     fireRate: 2.5,
-    orbitRadius: 75,
+    orbitRadius: 115,
     orbitSpeed: 1.4,
-    size: 11,
+    size: 6,
     shape: 'triangle',
     color: '#64748b',
     secondaryColor: '#475569',
@@ -240,21 +240,21 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#94a3b8',
     passiveEffect: '+30% critical hit chance for player weapons',
     passiveEffectValue: 0.30,
-    activeEffect: 'Perfect aim: +500% damage on next shot',
-    activeTrigger: 'shoot',
-    activeEffectDuration: 0,
-    activeEffectCooldown: 10,
+    activeEffect: 'Tactical mode: Slow move, 3x damage/range for 6s',
+    activeTrigger: 'manual',
+    activeEffectDuration: 6,
+    activeEffectCooldown: 20,
   },
   laser_drone: {
     type: 'laser_drone',
     name: 'Laser Drone',
     description: 'Continuous laser beam that tracks enemies',
     canAttack: true,
-    damage: 8,
+    damage: 3,
     fireRate: 0.1,
-    orbitRadius: 63,
+    orbitRadius: 94,
     orbitSpeed: 2.0,
-    size: 12,
+    size: 7,
     shape: 'diamond',
     color: '#ec4899',
     secondaryColor: '#db2777',
@@ -274,11 +274,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Swarm Drone',
     description: 'Deploys mini-drones that swarm enemies',
     canAttack: true,
-    damage: 6,
+    damage: 2,
     fireRate: 0.6,
-    orbitRadius: 55,
+    orbitRadius: 84,
     orbitSpeed: 2.5,
-    size: 10,
+    size: 6,
     shape: 'circle',
     color: '#14b8a6',
     secondaryColor: '#0d9488',
@@ -300,9 +300,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     canAttack: false,
     damage: 0,
     fireRate: 0,
-    orbitRadius: 58,
+    orbitRadius: 87,
     orbitSpeed: 1.6,
-    size: 13,
+    size: 8,
     shape: 'hexagon',
     color: '#6366f1',
     secondaryColor: '#4f46e5',
@@ -324,9 +324,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     canAttack: false,
     damage: 0,
     fireRate: 0,
-    orbitRadius: 52,
+    orbitRadius: 82,
     orbitSpeed: 1.5,
-    size: 13,
+    size: 8,
     shape: 'cross',
     color: '#22c55e',
     secondaryColor: '#16a34a',
@@ -336,9 +336,9 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#4ade80',
     passiveEffect: 'Regenerates 4 HP/sec',
     passiveEffectValue: 4,
-    activeEffect: 'Emergency heal: Restore 50% HP instantly',
-    activeTrigger: 'takeDamage',
-    activeEffectDuration: 0,
+    activeEffect: 'Healing pool: Area heal for 6s',
+    activeTrigger: 'manual',
+    activeEffectDuration: 6,
     activeEffectCooldown: 30,
   },
   tesla_drone: {
@@ -346,11 +346,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Tesla Drone',
     description: 'Chains lightning between nearby enemies',
     canAttack: true,
-    damage: 20,
+    damage: 7,
     fireRate: 1.3,
-    orbitRadius: 61,
+    orbitRadius: 91,
     orbitSpeed: 2.0,
-    size: 12,
+    size: 7,
     shape: 'star',
     color: '#3b82f6',
     secondaryColor: '#2563eb',
@@ -370,11 +370,11 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     name: 'Void Drone',
     description: 'Dark energy projectiles that phase through obstacles',
     canAttack: true,
-    damage: 28,
+    damage: 9,
     fireRate: 1.4,
-    orbitRadius: 68,
+    orbitRadius: 98,
     orbitSpeed: 1.9,
-    size: 12,
+    size: 7,
     shape: 'diamond',
     color: '#7c3aed',
     secondaryColor: '#6d28d9',
@@ -437,7 +437,7 @@ export class DroneSystem {
     if (!drone.aiState) {
       drone.aiState = 'hovering';
       drone.aiTimer = 0;
-      drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
+      drone.hoverOffset = { x: (Math.random() - 0.5) * 80, y: (Math.random() - 0.5) * 80 };
     }
 
     drone.aiTimer = (drone.aiTimer || 0) + dt;
@@ -456,7 +456,7 @@ export class DroneSystem {
       drone.position.y += (hoverY - drone.position.y) * smoothingFactor;
 
       const distance = vectorDistance(drone.position, ownerPosition);
-      if (distance > drone.orbitRadius + 30) {
+      if (distance > drone.orbitRadius + 40) {
         const toOwner = vectorNormalize(vectorSubtract(ownerPosition, drone.position));
         drone.position.x += toOwner.x * 3;
         drone.position.y += toOwner.y * 3;
@@ -466,7 +466,7 @@ export class DroneSystem {
       if (drone.aiTimer > 2 + Math.random() * 1.5) {
         drone.aiState = 'hovering';
         drone.aiTimer = 0;
-        drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
+        drone.hoverOffset = { x: (Math.random() - 0.5) * 80, y: (Math.random() - 0.5) * 80 };
       }
 
       drone.orbitAngle = (drone.orbitAngle || 0) + drone.orbitSpeed * dt;
@@ -485,12 +485,12 @@ export class DroneSystem {
       if (drone.aiTimer > 1.5) {
         drone.aiState = 'hovering';
         drone.aiTimer = 0;
-        drone.hoverOffset = { x: (Math.random() - 0.5) * 40, y: (Math.random() - 0.5) * 40 };
+        drone.hoverOffset = { x: (Math.random() - 0.5) * 80, y: (Math.random() - 0.5) * 80 };
       }
 
       const spinSpeed = 8;
       drone.orbitAngle = (drone.orbitAngle || 0) + spinSpeed * dt;
-      const spinRadius = 30;
+      const spinRadius = 70;
 
       const targetX = ownerPosition.x + Math.cos(drone.orbitAngle) * spinRadius;
       const targetY = ownerPosition.y + Math.sin(drone.orbitAngle) * spinRadius;

@@ -69,6 +69,20 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 29, 2025: UI & Drone Balance Overhaul
+  - **UI Simplification**: Removed score display, condensed health/dash into single compact card, moved currency to Resources inventory tab
+  - **Drone Size & Spacing Fixes**: Reduced drone sizes from 10-14 to 6-8 units, increased orbit radius from 50-75 to 80-115 units, increased hover offset from 40 to 80 units to prevent player overlap
+  - **Drone Visual Enhancement**: Enhanced all 15 drone types with multiple colors, overlapping geometric shapes, and unique layered patterns for better visual distinction
+  - **Drone Balance**: Nerfed all drone weapon damage across the board (assault 15→5, plasma 25→8, cryo 12→4, explosive 30→10, tesla 15→6, sniper 40→12, laser 30→10, void 20→7, swarm 8→3, etc.)
+  - **Drone Active Abilities**: Fully implemented gameplay-focused active abilities for all drones:
+    - Shield: Emergency shield bubble (blocks all damage for 3s on takeDamage)
+    - Medic: Creates healing pool (150 radius, 15 HP/sec, 6s duration)
+    - Sniper: Tactical mode (slow movement, 3x damage/range, 6s duration)
+    - Cryo: Ice Nova (freezes all enemies in 300 radius for 3s on dash)
+    - EMP: EMP Blast (stuns all enemies in 350 radius for 4s on weapon swap)
+    - Swarm: Deploys 20 mini-drones to attack enemies
+  - **Note**: Some advanced rendering (healing pools, swarm visuals, frozen/stunned enemy effects) implemented but need visual polish
+
 - October 29, 2025: Drone Visual Overhaul & Effect System
   - **Visual Rendering System**: Completely redesigned drone visuals with new DroneRenderer class
     - Drones now render as floating geometric shapes: triangles (assault), circles (shield/scout), squares (repair), diamonds (sniper/laser), hexagons (gravity/tesla/void), and stars (cryo/emp/swarm)

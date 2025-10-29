@@ -1,4 +1,4 @@
-import { Shield, Zap, DollarSign, Star } from 'lucide-react';
+import { Shield, Zap } from 'lucide-react';
 import { GameState } from '../types/game';
 import { useEffect, useState, useRef } from 'react';
 
@@ -8,7 +8,7 @@ interface HUDProps {
 }
 
 export default function HUD({ gameState, interactionText }: HUDProps) {
-  const { player, score, currentBiomeName } = gameState;
+  const { player, currentBiomeName } = gameState;
   const healthPercent = (player.health / player.maxHealth) * 100;
   const dashPercent = Math.max(0, (1 - player.dashCooldown / 1.5) * 100);
 
@@ -35,29 +35,26 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
           </div>
         </div>
       )}
-      <div className="absolute top-4 left-4 space-y-3 pointer-events-none select-none">
-        <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-bold text-slate-300">HULL INTEGRITY</span>
+      <div className="absolute top-4 left-4 space-y-2 pointer-events-none select-none">
+        <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-2 shadow-lg w-52">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Shield className="w-3.5 h-3.5 text-red-400" />
+            <span className="text-[10px] font-bold text-slate-300 tracking-wide">HULL</span>
+            <span className="text-[10px] text-slate-400 ml-auto">{Math.ceil(player.health)} / {player.maxHealth}</span>
           </div>
-          <div className="w-48 h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
             <div
               className="h-full bg-gradient-to-r from-red-500 to-green-500 transition-all duration-300"
               style={{ width: `${healthPercent}%` }}
             />
           </div>
-          <div className="text-xs text-slate-400 mt-1">
-            {Math.ceil(player.health)} / {player.maxHealth}
+          
+          <div className="flex items-center gap-2 mb-1.5 mt-2">
+            <Zap className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10px] font-bold text-slate-300 tracking-wide">DASH</span>
+            <span className="text-[10px] text-slate-400 ml-auto">{dashPercent === 100 ? 'READY' : 'RECHARGING'}</span>
           </div>
-        </div>
-
-        <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-bold text-slate-300">DASH CORE</span>
-          </div>
-          <div className="w-48 h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
             <div
               className={`h-full transition-all duration-100 ${
                 dashPercent === 100
@@ -66,18 +63,6 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
               }`}
               style={{ width: `${dashPercent}%` }}
             />
-          </div>
-        </div>
-
-        <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 shadow-lg flex flex-wrap items-center justify-start gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2" title="Score">
-            <Star className="w-5 h-5 text-purple-400" />
-            <span className="text-lg font-bold text-purple-300">{score}</span>
-          </div>
-          <div className="w-px h-6 bg-slate-700" />
-          <div className="flex items-center gap-2" title="Currency">
-            <DollarSign className="w-5 h-5 text-yellow-400" />
-            <span className="text-lg font-bold text-yellow-300">{player.currency}</span>
           </div>
         </div>
 
