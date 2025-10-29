@@ -69,6 +69,19 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 29, 2025: Drone Visual Overhaul & Effect System
+  - **Visual Rendering System**: Completely redesigned drone visuals with new DroneRenderer class
+    - Drones now render as floating geometric shapes: triangles (assault), circles (shield/scout), squares (repair), diamonds (sniper/laser), hexagons (gravity/tesla/void), and stars (cryo/emp/swarm)
+    - Added orbit/spin/hover animations with smooth interpolation
+    - Implemented glow effects for each drone type matching their colors
+  - **Health System Removal**: Removed HP system from drones - they're now purely visual/effect-based companions
+  - **Attack Capability Clarification**: Distinguished 10 attack drones (assault, plasma, sniper, laser, explosive, tesla, void, cryo, emp, swarm) from 5 support-only drones (shield, repair, scout, gravity, medic)
+  - **Passive Effects Implementation**: Created passive effects system in GameEngine
+    - Repair/Medic drones: HP regeneration over time (2 HP/sec and 3 HP/sec respectively)
+    - Shield drone: 20% damage absorption calculated from max health
+    - Effects apply continuously while drones are equipped
+  - **Architecture**: Integrated DroneRenderer into GameCanvas rendering pipeline, removed obsolete applyDroneSpecialAbilities method
+
 - October 29, 2025: Melee Perk System Fix & Drone Inventory UI
   - **Unified Weapon Perk System**: Merged all weapon perks into a single system with `weaponCategory` field ('melee' or 'ranged')
   - **Category-Aware Perk Application**: Modified WeaponCrateSystem to detect melee weapon types and apply only category-appropriate perks
