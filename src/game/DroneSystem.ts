@@ -1,28 +1,31 @@
 import { Drone, DroneType, Vector2, Enemy, Projectile } from '../types/game';
 import { generateId, vectorDistance, vectorNormalize, vectorSubtract, vectorScale, vectorAdd } from './utils';
 
+export type DroneShape = 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star';
+
 export interface DroneDefinition {
   type: DroneType;
   name: string;
   description: string;
-  health: number;
+  canAttack: boolean;
   damage: number;
   fireRate: number;
   orbitRadius: number;
   orbitSpeed: number;
   size: number;
+  shape: DroneShape;
   color: string;
   secondaryColor: string;
   detectionRadius: number;
   projectileSpeed: number;
   projectileSize: number;
   projectileColor: string;
-  specialAbility?: string;
-  shieldStrength?: number;
-  repairRate?: number;
   passiveEffect?: string;
+  passiveEffectValue?: number;
   activeEffect?: string;
-  effectCooldown?: number;
+  activeTrigger?: 'shoot' | 'dash' | 'weaponSwap' | 'takeDamage' | 'manual';
+  activeEffectDuration?: number;
+  activeEffectCooldown?: number;
 }
 
 export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
@@ -30,317 +33,361 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     type: 'assault_drone',
     name: 'Assault Drone',
     description: 'Aggressive drone that fires rapid projectiles at enemies',
-    health: 80,
+    canAttack: true,
     damage: 15,
     fireRate: 0.5,
     orbitRadius: 60,
     orbitSpeed: 2.0,
     size: 12,
+    shape: 'diamond',
     color: '#ef4444',
     secondaryColor: '#dc2626',
     detectionRadius: 300,
     projectileSpeed: 12,
     projectileSize: 6,
     projectileColor: '#f87171',
-    passiveEffect: '+15% player damage when active',
-    activeEffect: 'Burst fire mode for 3 seconds',
-    effectCooldown: 12,
+    passiveEffect: '+15% damage to all player weapons',
+    passiveEffectValue: 0.15,
+    activeEffect: 'Burst fire: Drone fires 5x faster for 3 seconds',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 3,
+    activeEffectCooldown: 12,
   },
   shield_drone: {
     type: 'shield_drone',
     name: 'Shield Drone',
     description: 'Defensive drone that absorbs damage for the player',
-    health: 120,
-    damage: 8,
+    canAttack: false,
+    damage: 0,
     fireRate: 1.0,
     orbitRadius: 50,
     orbitSpeed: 1.5,
     size: 14,
+    shape: 'hexagon',
     color: '#3b82f6',
     secondaryColor: '#2563eb',
     detectionRadius: 250,
-    projectileSpeed: 10,
-    projectileSize: 5,
+    projectileSpeed: 0,
+    projectileSize: 0,
     projectileColor: '#60a5fa',
-    specialAbility: 'shield',
-    shieldStrength: 50,
-    passiveEffect: 'Absorbs 20% of damage taken',
-    activeEffect: 'Emergency shield bubble for 5 seconds',
-    effectCooldown: 20,
+    passiveEffect: 'Absorbs 20% of incoming damage',
+    passiveEffectValue: 0.20,
+    activeEffect: 'Emergency shield bubble blocks all damage for 3s',
+    activeTrigger: 'takeDamage',
+    activeEffectDuration: 3,
+    activeEffectCooldown: 20,
   },
   repair_drone: {
     type: 'repair_drone',
     name: 'Repair Drone',
     description: 'Support drone that slowly repairs player health',
-    health: 60,
-    damage: 5,
-    fireRate: 1.5,
+    canAttack: false,
+    damage: 0,
+    fireRate: 0,
     orbitRadius: 55,
     orbitSpeed: 1.8,
     size: 11,
+    shape: 'cross',
     color: '#10b981',
     secondaryColor: '#059669',
     detectionRadius: 200,
-    projectileSpeed: 8,
-    projectileSize: 4,
+    projectileSpeed: 0,
+    projectileSize: 0,
     projectileColor: '#34d399',
-    specialAbility: 'repair',
-    repairRate: 2,
     passiveEffect: 'Regenerates 2 HP per second',
-    activeEffect: 'Instant heal burst (30 HP)',
-    effectCooldown: 15,
+    passiveEffectValue: 2,
+    activeEffect: 'Instant heal: Restore 30 HP immediately',
+    activeTrigger: 'dash',
+    activeEffectDuration: 0,
+    activeEffectCooldown: 15,
   },
   scout_drone: {
     type: 'scout_drone',
     name: 'Scout Drone',
     description: 'Fast drone with extended detection range',
-    health: 50,
-    damage: 10,
-    fireRate: 0.8,
+    canAttack: false,
+    damage: 0,
+    fireRate: 0,
     orbitRadius: 70,
     orbitSpeed: 3.0,
     size: 10,
+    shape: 'triangle',
     color: '#f59e0b',
     secondaryColor: '#d97706',
-    detectionRadius: 400,
-    projectileSpeed: 15,
-    projectileSize: 5,
+    detectionRadius: 500,
+    projectileSpeed: 0,
+    projectileSize: 0,
     projectileColor: '#fbbf24',
-    passiveEffect: '+50% detection range, reveals cloaked enemies',
-    activeEffect: 'Marks all enemies for 8 seconds (+20% damage)',
-    effectCooldown: 18,
+    passiveEffect: '+100 detection range, reveals hidden enemies',
+    passiveEffectValue: 100,
+    activeEffect: 'Pulse scan: Reveal all enemies for 8 seconds',
+    activeTrigger: 'manual',
+    activeEffectDuration: 8,
+    activeEffectCooldown: 18,
   },
   plasma_drone: {
     type: 'plasma_drone',
     name: 'Plasma Drone',
     description: 'Fires superheated plasma bolts that pierce enemies',
-    health: 70,
+    canAttack: true,
     damage: 25,
     fireRate: 1.2,
     orbitRadius: 65,
     orbitSpeed: 2.2,
     size: 13,
+    shape: 'diamond',
     color: '#8b5cf6',
     secondaryColor: '#7c3aed',
     detectionRadius: 320,
     projectileSpeed: 14,
     projectileSize: 8,
     projectileColor: '#a78bfa',
-    specialAbility: 'piercing',
-    passiveEffect: 'Projectiles pierce through enemies',
-    activeEffect: 'Overcharge: Triple damage shots for 4 seconds',
-    effectCooldown: 14,
+    passiveEffect: 'Drone projectiles pierce through enemies',
+    passiveEffectValue: 1,
+    activeEffect: 'Overcharge: Triple damage for 4 seconds',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 4,
+    activeEffectCooldown: 14,
   },
   cryo_drone: {
     type: 'cryo_drone',
     name: 'Cryo Drone',
     description: 'Slows enemies with freezing projectiles',
-    health: 65,
+    canAttack: true,
     damage: 12,
     fireRate: 0.9,
     orbitRadius: 60,
     orbitSpeed: 1.9,
     size: 12,
+    shape: 'hexagon',
     color: '#06b6d4',
     secondaryColor: '#0891b2',
     detectionRadius: 280,
     projectileSpeed: 11,
     projectileSize: 7,
     projectileColor: '#22d3ee',
-    specialAbility: 'slow',
-    passiveEffect: 'Slows hit enemies by 30% for 2 seconds',
-    activeEffect: 'Freeze wave: Freeze all nearby enemies for 3 seconds',
-    effectCooldown: 16,
+    passiveEffect: 'Drone shots slow enemies by 30% for 2 seconds',
+    passiveEffectValue: 0.30,
+    activeEffect: 'Ice Nova: Freeze all nearby enemies for 3 seconds',
+    activeTrigger: 'dash',
+    activeEffectDuration: 3,
+    activeEffectCooldown: 16,
   },
   explosive_drone: {
     type: 'explosive_drone',
     name: 'Explosive Drone',
     description: 'Launches explosive rounds that deal area damage',
-    health: 75,
+    canAttack: true,
     damage: 30,
     fireRate: 1.8,
     orbitRadius: 58,
     orbitSpeed: 1.7,
     size: 13,
+    shape: 'square',
     color: '#f97316',
     secondaryColor: '#ea580c',
     detectionRadius: 290,
     projectileSpeed: 9,
     projectileSize: 9,
     projectileColor: '#fb923c',
-    specialAbility: 'explosive',
-    passiveEffect: 'Explosions deal 150% AoE damage',
-    activeEffect: 'Carpet bomb: Rapid fire explosives for 4 seconds',
-    effectCooldown: 18,
+    passiveEffect: 'Drone shots explode for AoE damage',
+    passiveEffectValue: 1,
+    activeEffect: 'Carpet bomb: Rapid fire for 4 seconds',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 4,
+    activeEffectCooldown: 18,
   },
   emp_drone: {
     type: 'emp_drone',
     name: 'EMP Drone',
     description: 'Disrupts enemy shields and systems',
-    health: 68,
+    canAttack: true,
     damage: 18,
     fireRate: 1.1,
     orbitRadius: 62,
     orbitSpeed: 2.1,
     size: 12,
+    shape: 'cross',
     color: '#eab308',
     secondaryColor: '#ca8a04',
     detectionRadius: 310,
     projectileSpeed: 13,
     projectileSize: 6,
     projectileColor: '#fde047',
-    specialAbility: 'emp',
-    passiveEffect: 'Disables enemy shields on hit',
-    activeEffect: 'EMP blast: Stuns all enemies in range for 4 seconds',
-    effectCooldown: 24,
+    passiveEffect: 'Drone shots disable enemy abilities briefly',
+    passiveEffectValue: 1,
+    activeEffect: 'EMP blast: Stun all nearby enemies for 4 seconds',
+    activeTrigger: 'weaponSwap',
+    activeEffectDuration: 4,
+    activeEffectCooldown: 24,
   },
   sniper_drone: {
     type: 'sniper_drone',
     name: 'Sniper Drone',
     description: 'Precise long-range shots with high damage',
-    health: 55,
+    canAttack: true,
     damage: 45,
     fireRate: 2.5,
     orbitRadius: 75,
     orbitSpeed: 1.4,
     size: 11,
+    shape: 'triangle',
     color: '#64748b',
     secondaryColor: '#475569',
     detectionRadius: 500,
     projectileSpeed: 20,
     projectileSize: 5,
     projectileColor: '#94a3b8',
-    specialAbility: 'precision',
-    passiveEffect: '30% critical hit chance for bonus damage',
-    activeEffect: 'Perfect shot: Next shot deals 500% damage',
-    effectCooldown: 10,
+    passiveEffect: '+30% critical hit chance for player weapons',
+    passiveEffectValue: 0.30,
+    activeEffect: 'Perfect aim: +500% damage on next shot',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 0,
+    activeEffectCooldown: 10,
   },
   laser_drone: {
     type: 'laser_drone',
     name: 'Laser Drone',
     description: 'Continuous laser beam that tracks enemies',
-    health: 62,
+    canAttack: true,
     damage: 8,
     fireRate: 0.1,
     orbitRadius: 63,
     orbitSpeed: 2.0,
     size: 12,
+    shape: 'diamond',
     color: '#ec4899',
     secondaryColor: '#db2777',
     detectionRadius: 300,
     projectileSpeed: 25,
     projectileSize: 4,
     projectileColor: '#f472b6',
-    specialAbility: 'beam',
-    passiveEffect: 'Continuous laser beam, damage ramps up over time',
-    activeEffect: 'Overload: 3x beam width and damage for 5 seconds',
-    effectCooldown: 15,
+    passiveEffect: 'Continuous beam, damage ramps over time',
+    passiveEffectValue: 1,
+    activeEffect: 'Overload: Triple damage for 5 seconds',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 5,
+    activeEffectCooldown: 15,
   },
   swarm_drone: {
     type: 'swarm_drone',
     name: 'Swarm Drone',
     description: 'Deploys mini-drones that swarm enemies',
-    health: 58,
+    canAttack: true,
     damage: 6,
     fireRate: 0.6,
     orbitRadius: 55,
     orbitSpeed: 2.5,
     size: 10,
+    shape: 'circle',
     color: '#14b8a6',
     secondaryColor: '#0d9488',
     detectionRadius: 270,
     projectileSpeed: 10,
     projectileSize: 3,
     projectileColor: '#2dd4bf',
-    specialAbility: 'swarm',
-    passiveEffect: 'Each shot splits into 3 mini-drones',
-    activeEffect: 'Deploy swarm: 20 mini-drones attack all enemies',
-    effectCooldown: 20,
+    passiveEffect: 'Drone shots split into 3 mini-projectiles',
+    passiveEffectValue: 3,
+    activeEffect: 'Swarm deploy: 20 mini-drones attack',
+    activeTrigger: 'manual',
+    activeEffectDuration: 6,
+    activeEffectCooldown: 20,
   },
   gravity_drone: {
     type: 'gravity_drone',
     name: 'Gravity Drone',
     description: 'Creates gravity wells that pull enemies together',
-    health: 72,
-    damage: 14,
-    fireRate: 2.0,
+    canAttack: false,
+    damage: 0,
+    fireRate: 0,
     orbitRadius: 58,
     orbitSpeed: 1.6,
     size: 13,
+    shape: 'hexagon',
     color: '#6366f1',
     secondaryColor: '#4f46e5',
     detectionRadius: 350,
-    projectileSpeed: 8,
-    projectileSize: 10,
+    projectileSpeed: 0,
+    projectileSize: 0,
     projectileColor: '#818cf8',
-    specialAbility: 'gravity',
     passiveEffect: 'Slows nearby enemies by 15%',
-    activeEffect: 'Black hole: Pulls all enemies to center',
-    effectCooldown: 25,
+    passiveEffectValue: 0.15,
+    activeEffect: 'Black hole: Pulls all enemies to center for 4s',
+    activeTrigger: 'manual',
+    activeEffectDuration: 4,
+    activeEffectCooldown: 25,
   },
   medic_drone: {
     type: 'medic_drone',
     name: 'Medic Drone',
     description: 'Advanced healing with shield regeneration',
-    health: 85,
-    damage: 3,
-    fireRate: 2.0,
+    canAttack: false,
+    damage: 0,
+    fireRate: 0,
     orbitRadius: 52,
     orbitSpeed: 1.5,
     size: 13,
+    shape: 'cross',
     color: '#22c55e',
     secondaryColor: '#16a34a',
     detectionRadius: 200,
-    projectileSpeed: 7,
-    projectileSize: 5,
+    projectileSpeed: 0,
+    projectileSize: 0,
     projectileColor: '#4ade80',
-    specialAbility: 'medic',
-    repairRate: 4,
-    passiveEffect: 'Regenerates 4 HP/sec + 10% shield regen',
-    activeEffect: 'Revive: Restore 50% HP instantly',
-    effectCooldown: 30,
+    passiveEffect: 'Regenerates 4 HP/sec',
+    passiveEffectValue: 4,
+    activeEffect: 'Emergency heal: Restore 50% HP instantly',
+    activeTrigger: 'takeDamage',
+    activeEffectDuration: 0,
+    activeEffectCooldown: 30,
   },
   tesla_drone: {
     type: 'tesla_drone',
     name: 'Tesla Drone',
     description: 'Chains lightning between nearby enemies',
-    health: 66,
+    canAttack: true,
     damage: 20,
     fireRate: 1.3,
     orbitRadius: 61,
     orbitSpeed: 2.0,
     size: 12,
+    shape: 'star',
     color: '#3b82f6',
     secondaryColor: '#2563eb',
     detectionRadius: 300,
     projectileSpeed: 16,
     projectileSize: 6,
     projectileColor: '#60a5fa',
-    specialAbility: 'chain',
     passiveEffect: 'Lightning chains to 3 nearby enemies',
-    activeEffect: 'Tesla storm: Continuous chain lightning for 6 seconds',
-    effectCooldown: 22,
+    passiveEffectValue: 3,
+    activeEffect: 'Tesla storm: Continuous chain for 6 seconds',
+    activeTrigger: 'shoot',
+    activeEffectDuration: 6,
+    activeEffectCooldown: 22,
   },
   void_drone: {
     type: 'void_drone',
     name: 'Void Drone',
     description: 'Dark energy projectiles that phase through obstacles',
-    health: 60,
+    canAttack: true,
     damage: 28,
     fireRate: 1.4,
     orbitRadius: 68,
     orbitSpeed: 1.9,
     size: 12,
+    shape: 'diamond',
     color: '#7c3aed',
     secondaryColor: '#6d28d9',
     detectionRadius: 330,
     projectileSpeed: 12,
     projectileSize: 8,
     projectileColor: '#a78bfa',
-    specialAbility: 'void',
     passiveEffect: 'Projectiles ignore obstacles and terrain',
-    activeEffect: 'Void rift: Creates damaging portal for 5 seconds',
-    effectCooldown: 20,
+    passiveEffectValue: 1,
+    activeEffect: 'Void rift: Damaging portal for 5 seconds',
+    activeTrigger: 'dash',
+    activeEffectDuration: 5,
+    activeEffectCooldown: 20,
   },
 };
 
@@ -356,8 +403,7 @@ export class DroneSystem {
       velocity: { x: 0, y: 0 },
       rotation: 0,
       size: definition.size,
-      health: definition.health,
-      maxHealth: definition.health,
+      shape: definition.shape,
       damage: definition.damage,
       fireRate: definition.fireRate,
       attackCooldown: 0,
@@ -367,9 +413,8 @@ export class DroneSystem {
       color: definition.color,
       secondaryColor: definition.secondaryColor,
       detectionRadius: definition.detectionRadius,
-      shieldActive: definition.specialAbility === 'shield',
-      repairRate: definition.repairRate,
-      lastRepairTime: 0,
+      activeEffectCooldown: definition.activeEffectCooldown || 0,
+      activeEffectTimer: 0,
     };
   }
 
@@ -465,6 +510,14 @@ export class DroneSystem {
     dt: number,
     createProjectile: (projectile: Projectile) => void
   ): void {
+    const definition = DRONE_DEFINITIONS[drone.droneType];
+    
+    // Only attack if this drone type can attack
+    if (!definition.canAttack) {
+      drone.targetId = undefined;
+      return;
+    }
+
     drone.attackCooldown = Math.max(0, drone.attackCooldown - dt);
 
     if (drone.attackCooldown > 0) return;
@@ -477,7 +530,7 @@ export class DroneSystem {
     }
 
     const distance = vectorDistance(drone.position, nearestEnemy.position);
-    if (distance > (drone.detectionRadius || 300)) {
+    if (distance > drone.detectionRadius) {
       drone.targetId = undefined;
       return;
     }
@@ -495,7 +548,7 @@ export class DroneSystem {
       if (enemy.health <= 0) return;
       
       const dist = vectorDistance(drone.position, enemy.position);
-      if (dist < minDist && dist <= (drone.detectionRadius || 300)) {
+      if (dist < minDist && dist <= drone.detectionRadius) {
         minDist = dist;
         nearest = enemy;
       }
@@ -526,38 +579,6 @@ export class DroneSystem {
       piercing: false,
       piercingCount: 0,
     });
-  }
-
-  applyDroneSpecialAbilities(
-    drones: Drone[],
-    playerHealth: number,
-    playerMaxHealth: number,
-    dt: number
-  ): { healthRepaired: number; shieldAbsorbed: number } {
-    let healthRepaired = 0;
-    let shieldAbsorbed = 0;
-
-    drones.forEach(drone => {
-      const definition = DRONE_DEFINITIONS[drone.droneType];
-      
-      if (definition.specialAbility === 'repair' && definition.repairRate) {
-        const timeSinceLastRepair = dt;
-        if (!drone.lastRepairTime) drone.lastRepairTime = 0;
-        
-        drone.lastRepairTime += timeSinceLastRepair;
-        
-        if (drone.lastRepairTime >= 1.0 && playerHealth < playerMaxHealth) {
-          healthRepaired += definition.repairRate;
-          drone.lastRepairTime = 0;
-        }
-      }
-      
-      if (definition.specialAbility === 'shield' && drone.shieldActive && definition.shieldStrength) {
-        shieldAbsorbed += definition.shieldStrength;
-      }
-    });
-
-    return { healthRepaired, shieldAbsorbed };
   }
 
   getDroneDefinition(droneType: DroneType): DroneDefinition {

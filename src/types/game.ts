@@ -108,8 +108,6 @@ export type DroneType =
 export interface Drone extends Entity {
   droneType: DroneType;
   ownerId: string;
-  health: number;
-  maxHealth: number;
   damage: number;
   fireRate: number;
   attackCooldown: number;
@@ -119,13 +117,13 @@ export interface Drone extends Entity {
   targetId?: string;
   color: string;
   secondaryColor: string;
-  shieldActive?: boolean;
-  repairRate?: number;
-  lastRepairTime?: number;
-  detectionRadius?: number;
+  shape: 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star';
+  detectionRadius: number;
   aiState?: 'hovering' | 'orbiting' | 'spinning';
   aiTimer?: number;
   hoverOffset?: Vector2;
+  activeEffectCooldown: number;
+  activeEffectTimer: number;
 }
 
 export interface Enemy extends Entity {
