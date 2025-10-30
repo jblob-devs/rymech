@@ -179,6 +179,9 @@ export class WaveSystem {
   private spawnTimer: number = 0;
   private waveComplete: boolean = false;
   private modifierChance: number = 0.15;
+  private recentDeathPositions: Array<{ x: number; y: number; timestamp: number }> = [];
+  private readonly DEATH_EXCLUSION_RADIUS = 100;
+  private readonly DEATH_EXCLUSION_TIME = 3000;
 
   getWaveConfig(wave: number): WaveConfig {
     var hasBoss = wave % 5 === 0;
@@ -297,6 +300,23 @@ export class WaveSystem {
     this.waveComplete = true;
   }
 
+  recordEnemyDeath(position: { x: number; y: number }): void {
+    const now = Date.now();
+    this.recentDeathPositions = this.recentDeathPositions.filter(
+      death => now - death.timestamp < this.DEATH_EXCLUSION_TIME
+    );
+    this.recentDeathPositions.push({ ...position, timestamp: now });
+  }
+
+  private isPositionNearRecentDeath(x: number, y: number): boolean {
+    const now = Date.now();
+    return this.recentDeathPositions.some(death => {
+      if (now - death.timestamp > this.DEATH_EXCLUSION_TIME) return false;
+      const dist = Math.sqrt(Math.pow(x - death.x, 2) + Math.pow(y - death.y, 2));
+      return dist < this.DEATH_EXCLUSION_RADIUS;
+    });
+  }
+
   createEnemy(type?: Enemy['type'], playerPosition?: { x: number; y: number }): Enemy {
     const config = this.getWaveConfig(this.currentWave);
 
@@ -322,49 +342,54 @@ export class WaveSystem {
 
     const scaledStats = getScaledStats(enemyType, this.currentWave);
 
-    const side = Math.floor(Math.random() * 4);
-    let x = 0,
-      y = 0;
+    let x = 0, y = 0;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    if (playerPosition) {
-      switch (side) {
-        case 0:
-          x = playerPosition.x + randomRange(-CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
-          y = playerPosition.y - CANVAS_HEIGHT / 2 - 30;
-          break;
-        case 1:
-          x = playerPosition.x + CANVAS_WIDTH / 2 + 30;
-          y = playerPosition.y + randomRange(-CANVAS_HEIGHT / 2, CANVAS_HEIGHT / 2);
-          break;
-        case 2:
-          x = playerPosition.x + randomRange(-CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
-          y = playerPosition.y + CANVAS_HEIGHT / 2 + 30;
-          break;
-        case 3:
-          x = playerPosition.x - CANVAS_WIDTH / 2 - 30;
-          y = playerPosition.y + randomRange(-CANVAS_HEIGHT / 2, CANVAS_HEIGHT / 2);
-          break;
+    do {
+      const side = Math.floor(Math.random() * 4);
+
+      if (playerPosition) {
+        switch (side) {
+          case 0:
+            x = playerPosition.x + randomRange(-CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
+            y = playerPosition.y - CANVAS_HEIGHT / 2 - 30;
+            break;
+          case 1:
+            x = playerPosition.x + CANVAS_WIDTH / 2 + 30;
+            y = playerPosition.y + randomRange(-CANVAS_HEIGHT / 2, CANVAS_HEIGHT / 2);
+            break;
+          case 2:
+            x = playerPosition.x + randomRange(-CANVAS_WIDTH / 2, CANVAS_WIDTH / 2);
+            y = playerPosition.y + CANVAS_HEIGHT / 2 + 30;
+            break;
+          case 3:
+            x = playerPosition.x - CANVAS_WIDTH / 2 - 30;
+            y = playerPosition.y + randomRange(-CANVAS_HEIGHT / 2, CANVAS_HEIGHT / 2);
+            break;
+        }
+      } else {
+        switch (side) {
+          case 0:
+            x = randomRange(0, CANVAS_WIDTH);
+            y = -30;
+            break;
+          case 1:
+            x = CANVAS_WIDTH + 30;
+            y = randomRange(0, CANVAS_HEIGHT);
+            break;
+          case 2:
+            x = randomRange(0, CANVAS_WIDTH);
+            y = CANVAS_HEIGHT + 30;
+            break;
+          case 3:
+            x = -30;
+            y = randomRange(0, CANVAS_HEIGHT);
+            break;
+        }
       }
-    } else {
-      switch (side) {
-        case 0:
-          x = randomRange(0, CANVAS_WIDTH);
-          y = -30;
-          break;
-        case 1:
-          x = CANVAS_WIDTH + 30;
-          y = randomRange(0, CANVAS_HEIGHT);
-          break;
-        case 2:
-          x = randomRange(0, CANVAS_WIDTH);
-          y = CANVAS_HEIGHT + 30;
-          break;
-        case 3:
-          x = -30;
-          y = randomRange(0, CANVAS_HEIGHT);
-          break;
-      }
-    }
+      attempts++;
+    } while (this.isPositionNearRecentDeath(x, y) && attempts < maxAttempts);
 
     const enemy: Enemy = {
       id: generateId(),
