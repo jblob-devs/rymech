@@ -45,7 +45,7 @@ import {
   checkProjectileObstacleCollision,
   calculateRicochetVelocity,
 } from './CollisionSystem';
-import { findPathAroundObstacles } from './Pathfinding';
+import { findPathAroundObstacles, findBlockingObstacle } from './Pathfinding';
 import { PlayerInventory } from './PlayerInventory';
 import { WeaponCrateSystem } from './WeaponCrateSystem';
 import { BiomeManager, BiomeParticle, BiomeConfig } from './BiomeSystem';
@@ -382,7 +382,20 @@ export class GameEngine {
       (pos) => { this.gameState.player.position = pos; },
       (pos, count, color, lifetime) => this.createParticles(pos, count, color, lifetime)
     );
-    this.gameState.player.speed = PLAYER_BASE_SPEED * speedMultiplier;
+    let finalSpeedMult = speedMultiplier;
+    const player = this.gameState.player;
+    
+    if ((player as any).scoutDroneSpeedBoost) {
+      finalSpeedMult *= (1 + (player as any).scoutDroneSpeedBoost);
+    }
+    
+    if ((player as any).sniperTacticalMode && Date.now() < ((player as any).sniperModeEndTime || 0)) {
+      finalSpeedMult *= ((player as any).sniperSpeedMult || 1.0);
+    } else if ((player as any).sniperTacticalMode) {
+      (player as any).sniperTacticalMode = false;
+    }
+    
+    this.gameState.player.speed = PLAYER_BASE_SPEED * finalSpeedMult;
     this.checkPlayerDeath();
     this.featureInteraction.applyEnemyEffects(
       this.gameState.enemies,
@@ -1154,6 +1167,8 @@ export class GameEngine {
   private fireWeapon(weapon: Weapon): void {
     const player = this.gameState.player;
     const angle = player.rotation;
+    
+    (player as any).lastShotTime = Date.now();
 
     const MAX_PROJECTILES = 300;
     if (this.gameState.projectiles.length >= MAX_PROJECTILES) {
@@ -1169,6 +1184,14 @@ export class GameEngine {
 
       let damage = weapon.damage;
       let size = weapon.projectileSize;
+      
+      if ((player as any).sniperTacticalMode && Date.now() < ((player as any).sniperModeEndTime || 0)) {
+        damage *= ((player as any).sniperDamageMult || 1.0);
+      }
+      
+      if ((player as any).assaultDroneFireRateBoost && Date.now() < ((player as any).assaultDroneBoostEndTime || 0)) {
+        weapon.cooldown = weapon.fireRate / ((player as any).assaultDroneFireRateBoost || 1.0);
+      }
 
       if (weapon.firingMode === 'charge' && weapon.currentCharge) {
         const chargeRatio = weapon.currentCharge / (weapon.chargeTime || 2.0);
@@ -1201,7 +1224,9 @@ export class GameEngine {
         explosionRadius: weapon.explosionRadius,
         ricochet: weapon.ricochet,
         ricochetCount: weapon.ricochet ? 2 : 0,
-        maxRange: weapon.maxRange || MAX_VISIBLE_RANGE,
+        maxRange: ((player as any).sniperTacticalMode && Date.now() < ((player as any).sniperModeEndTime || 0)) 
+          ? (weapon.maxRange || MAX_VISIBLE_RANGE) * ((player as any).sniperRangeMult || 1.0)
+          : (weapon.maxRange || MAX_VISIBLE_RANGE),
         travelDistance: 0,
         weaponType: weapon.type,
         isCharged: weapon.firingMode === 'charge' && (weapon.currentCharge || 0) > 0.2,
@@ -1337,38 +1362,34 @@ export class GameEngine {
           enemy.velocity = vectorScale(wanderDirection, enemy.speed * 0.5);
         }
       } else if (enemy.type === 'sniper') {
+        const deaggroDistance = 600;
+        const shootRange = 350;
+        const pathfindRange = 500;
+        
         if (distance < (enemy.detectionRadius || 100)) {
           enemy.isAggro = true;
         }
+        
+        if (distance > deaggroDistance) {
+          enemy.isAggro = false;
+        }
 
         if (enemy.isAggro) {
-          if (distance > 300) {
-            const directionToPlayer = findPathAroundObstacles(
-              enemy.position,
-              targetPlayer.position,
-              this.obstacles,
-              enemy.size / 2
-            );
-            enemy.velocity = vectorScale(directionToPlayer, enemy.speed);
-          } else {
+          const hasLineOfSight = !findBlockingObstacle(
+            enemy.position,
+            targetPlayer.position,
+            this.obstacles,
+            enemy.size / 2
+          );
+          
+          if (hasLineOfSight && distance <= shootRange) {
             enemy.velocity = createVector();
-
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
               this.enemyFireProjectile(enemy, targetPlayer.position, 1, 8);
               enemy.attackCooldown = 2;
             }
-          }
-        } else {
-          enemy.velocity = createVector();
-        }
-      } else if (enemy.type === 'artillery') {
-        if (distance < (enemy.detectionRadius || 100)) {
-          enemy.isAggro = true;
-        }
-
-        if (enemy.isAggro) {
-          if (distance > 350) {
+          } else if (distance <= pathfindRange) {
             const directionToPlayer = findPathAroundObstacles(
               enemy.position,
               targetPlayer.position,
@@ -1378,12 +1399,48 @@ export class GameEngine {
             enemy.velocity = vectorScale(directionToPlayer, enemy.speed);
           } else {
             enemy.velocity = createVector();
+          }
+        } else {
+          enemy.velocity = createVector();
+        }
+      } else if (enemy.type === 'artillery') {
+        const deaggroDistance = 700;
+        const shootRange = 400;
+        const pathfindRange = 550;
+        
+        if (distance < (enemy.detectionRadius || 100)) {
+          enemy.isAggro = true;
+        }
+        
+        if (distance > deaggroDistance) {
+          enemy.isAggro = false;
+        }
 
+        if (enemy.isAggro) {
+          const hasLineOfSight = !findBlockingObstacle(
+            enemy.position,
+            targetPlayer.position,
+            this.obstacles,
+            enemy.size / 2
+          );
+          
+          if (hasLineOfSight && distance <= shootRange) {
+            enemy.velocity = createVector();
             enemy.attackCooldown -= dt;
             if (enemy.attackCooldown <= 0) {
               this.enemyFireProjectile(enemy, targetPlayer.position, 1, 6, 0.15);
               enemy.attackCooldown = 3;
             }
+          } else if (distance <= pathfindRange) {
+            const directionToPlayer = findPathAroundObstacles(
+              enemy.position,
+              targetPlayer.position,
+              this.obstacles,
+              enemy.size / 2
+            );
+            enemy.velocity = vectorScale(directionToPlayer, enemy.speed);
+          } else {
+            enemy.velocity = createVector();
           }
         } else {
           enemy.velocity = createVector();
@@ -3480,7 +3537,10 @@ export class GameEngine {
 
     switch (drone.droneType) {
       case 'repair_drone':
-        player.health = Math.min(player.maxHealth, player.health + 30);
+        (player as any).repairDroneActiveRegen = true;
+        (player as any).repairDroneActiveRegenEndTime = Date.now() + (definition.activeEffectDuration || 5) * 1000;
+        (player as any).repairDroneStartTime = Date.now();
+        (player as any).repairDroneRequiresStill = true;
         this.createParticles(player.position, 30, '#34d399', 0.6);
         break;
       
@@ -3500,31 +3560,42 @@ export class GameEngine {
         break;
       
       case 'shield_drone':
-        player.hasShieldBubble = true;
-        player.shieldBubbleEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
-        this.createParticles(player.position, 50, '#60a5fa', 0.9);
+        if (player.health <= player.maxHealth / 2) {
+          (player as any).shieldDroneActiveReduction = 0.50;
+          (player as any).shieldDroneActiveEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
+          this.createParticles(player.position, 50, '#60a5fa', 0.9);
+        }
         break;
       
       case 'sniper_drone':
-        player.sniperTacticalMode = true;
-        player.sniperModeEndTime = Date.now() + (definition.activeEffectDuration || 6) * 1000;
+        (player as any).sniperTacticalMode = true;
+        (player as any).sniperModeEndTime = Date.now() + (definition.activeEffectDuration || 6) * 1000;
+        (player as any).sniperSpeedMult = 0.5;
+        (player as any).sniperDamageMult = 2.0;
+        (player as any).sniperRangeMult = 2.0;
         this.createParticles(player.position, 30, '#94a3b8', 0.7);
         break;
       
       case 'cryo_drone':
-        const cryoRadius = 300;
-        this.gameState.enemies.forEach(enemy => {
-          const dist = Math.sqrt(
-            Math.pow(enemy.position.x - player.position.x, 2) +
-            Math.pow(enemy.position.y - player.position.y, 2)
-          );
-          if (dist <= cryoRadius) {
-            enemy.isFrozen = true;
-            enemy.frozenEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
-            this.createParticles(enemy.position, 15, '#22d3ee', 0.5);
-          }
+        if (!this.gameState.slowingAreas) {
+          this.gameState.slowingAreas = [];
+        }
+        const bombVelocity = {
+          x: Math.cos(player.rotation) * 200,
+          y: Math.sin(player.rotation) * 200
+        };
+        this.gameState.slowingAreas.push({
+          id: `cryo_bomb_${Date.now()}`,
+          position: { ...player.position },
+          velocity: bombVelocity,
+          radius: 0,
+          maxRadius: 150,
+          slowPercent: 0.6,
+          lifetime: definition.activeEffectDuration || 6,
+          ownerId: player.id,
+          isExpanding: false
         });
-        this.createParticles(player.position, 60, '#22d3ee', 1.0);
+        this.createParticles(player.position, 30, '#22d3ee', 0.8);
         break;
       
       case 'emp_drone':
@@ -3567,9 +3638,9 @@ export class GameEngine {
         break;
       
       case 'assault_drone':
-        drone.burstFireActive = true;
-        drone.burstFireEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
-        this.createParticles(drone.position, 30, '#f87171', 0.7);
+        (player as any).assaultDroneFireRateBoost = 2.0;
+        (player as any).assaultDroneBoostEndTime = Date.now() + (definition.activeEffectDuration || 3) * 1000;
+        this.createParticles(player.position, 30, '#f87171', 0.7);
         break;
       
       case 'plasma_drone':
@@ -3579,9 +3650,25 @@ export class GameEngine {
         break;
       
       case 'explosive_drone':
-        drone.carpetBombActive = true;
-        drone.carpetBombEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
-        this.createParticles(drone.position, 30, '#fb923c', 0.7);
+        if (!this.gameState.explosiveProjectiles) {
+          this.gameState.explosiveProjectiles = [];
+        }
+        const projVelocity = {
+          x: Math.cos(player.rotation) * 150,
+          y: Math.sin(player.rotation) * 150
+        };
+        (this.gameState as any).activeExplosiveProjectile = {
+          id: `explosive_proj_${Date.now()}`,
+          position: { ...player.position },
+          velocity: projVelocity,
+          size: 20,
+          damage: 100,
+          explosionRadius: 250,
+          lifetime: definition.activeEffectDuration || 8,
+          ownerId: player.id,
+          droneType: 'explosive_drone'
+        };
+        this.createParticles(player.position, 30, '#fb923c', 0.7);
         break;
       
       case 'laser_drone':
@@ -3627,8 +3714,10 @@ export class GameEngine {
         break;
       
       case 'scout_drone':
-        player.pulseScanActive = true;
-        player.pulseScanEndTime = Date.now() + (definition.activeEffectDuration || 8) * 1000;
+        (player as any).scoutDroneStealthActive = true;
+        (player as any).scoutDroneStealthEndTime = Date.now() + (definition.activeEffectDuration || 8) * 1000;
+        (player as any).isInvisibleOnRadar = true;
+        (player as any).detectionReduction = 0.7;
         this.createParticles(player.position, 60, '#fbbf24', 0.9);
         break;
     }
@@ -3679,8 +3768,11 @@ export class GameEngine {
           break;
 
         case 'scout_drone':
-          if (definition.passiveEffectValue) {
-            (player as any).detectionRangeBoost = ((player as any).detectionRangeBoost || 0) + definition.passiveEffectValue;
+          const timeSinceLastShot = Date.now() - (player.lastShotTime || 0);
+          if (timeSinceLastShot >= 3000 && definition.passiveEffectValue) {
+            (player as any).scoutDroneSpeedBoost = definition.passiveEffectValue;
+          } else {
+            (player as any).scoutDroneSpeedBoost = 0;
           }
           break;
       }
@@ -4049,7 +4141,9 @@ export class GameEngine {
         explosionRadius: weapon.explosionRadius,
         ricochet: weapon.ricochet,
         ricochetCount: weapon.ricochet ? 2 : 0,
-        maxRange: weapon.maxRange || MAX_VISIBLE_RANGE,
+        maxRange: ((player as any).sniperTacticalMode && Date.now() < ((player as any).sniperModeEndTime || 0)) 
+          ? (weapon.maxRange || MAX_VISIBLE_RANGE) * ((player as any).sniperRangeMult || 1.0)
+          : (weapon.maxRange || MAX_VISIBLE_RANGE),
         travelDistance: 0,
         weaponType: weapon.type,
         rotation: 0,

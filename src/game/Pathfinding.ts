@@ -32,7 +32,7 @@ export function findPathAroundObstacles(
   return vectorNormalize(avoidanceDirection);
 }
 
-function findBlockingObstacle(
+export function findBlockingObstacle(
   start: Vector2,
   target: Vector2,
   obstacles: Obstacle[],

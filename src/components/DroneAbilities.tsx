@@ -46,7 +46,7 @@ export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManual
           <div
             key={drone.id}
             className={`
-              bg-gray-900/90 border-2 rounded-lg p-3 min-w-[200px]
+              bg-gray-900/90 border-2 rounded-lg p-3 w-[200px]
               ${isActive ? 'border-green-400 shadow-lg shadow-green-400/50' : 
                 onCooldown ? 'border-gray-600' : 'border-cyan-400 shadow-md shadow-cyan-400/30'}
               transition-all duration-200
@@ -56,17 +56,17 @@ export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManual
               <div className="flex items-center gap-2">
                 <div 
                   className={`
-                    w-8 h-8 rounded flex items-center justify-center font-bold text-sm
+                    w-8 h-8 rounded flex items-center justify-center font-bold text-sm flex-shrink-0
                     ${onCooldown ? 'bg-gray-700 text-gray-400' : 'bg-cyan-500 text-black'}
                   `}
                 >
                   {key}
                 </div>
-                <span className="text-white font-semibold text-sm">{def.name}</span>
+                <span className="text-white font-semibold text-sm truncate">{def.name}</span>
               </div>
             </div>
             
-            <div className="text-xs text-gray-300 mb-1">{def.activeEffect}</div>
+            <div className="text-xs text-gray-300 mb-1 break-words">{def.activeEffect}</div>
             
             <div className="flex items-center justify-between text-xs">
               {isActive && drone.activeEffectRemainingTime ? (
@@ -96,18 +96,18 @@ export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManual
               <div
                 key={drone.id}
                 className={`
-                  bg-gray-900/80 border rounded-lg p-2 mb-2 min-w-[200px]
+                  bg-gray-900/80 border rounded-lg p-2 mb-2 w-[200px]
                   ${isActive ? 'border-green-400' : onCooldown ? 'border-gray-700' : 'border-blue-400'}
                 `}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-white font-semibold text-xs">{def.name}</span>
-                  <span className="text-blue-300 text-[10px] px-1.5 py-0.5 bg-blue-900/50 rounded">
+                  <span className="text-white font-semibold text-xs truncate flex-1 mr-2">{def.name}</span>
+                  <span className="text-blue-300 text-[10px] px-1.5 py-0.5 bg-blue-900/50 rounded flex-shrink-0">
                     {getTriggerDisplay(def.activeTrigger)}
                   </span>
                 </div>
                 
-                <div className="text-[10px] text-gray-400 mb-1">{def.activeEffect}</div>
+                <div className="text-[10px] text-gray-400 mb-1 break-words">{def.activeEffect}</div>
                 
                 {isActive && drone.activeEffectRemainingTime ? (
                   <span className="text-green-400 font-bold text-[10px]">
