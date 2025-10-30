@@ -67,8 +67,10 @@ export class GameEngine {
   private gameState: GameState;
   private keys: Set<string> = new Set();
   private mousePos = createVector();
+  private lastMousePos = createVector();
   private mouseDown = false;
   private lastMouseDown = false;
+  private usingArrowKeyAiming = false;
   private touchMoveInput: React.MutableRefObject<{ x: number; y: number }> | null = null;
   private touchShootInput: React.MutableRefObject<{ x: number; y: number; active: boolean }> | null = null;
   private worldGenerator: WorldGenerator;
@@ -601,12 +603,20 @@ export class GameEngine {
 
     if (this.keys.has('arrowleft')) {
       player.rotation -= dt * 4;
+      this.usingArrowKeyAiming = true;
     }
     if (this.keys.has('arrowright')) {
       player.rotation += dt * 4;
+      this.usingArrowKeyAiming = true;
     }
 
-    if (!this.keys.has('arrowleft') && !this.keys.has('arrowright')) {
+    const mouseHasMoved = vectorDistance(this.mousePos, this.lastMousePos) > 5;
+    if (mouseHasMoved) {
+      this.usingArrowKeyAiming = false;
+      this.lastMousePos = { ...this.mousePos };
+    }
+
+    if (!this.keys.has('arrowleft') && !this.keys.has('arrowright') && !this.usingArrowKeyAiming) {
       if (this.touchShootInput && this.touchShootInput.current.active && (Math.abs(this.touchShootInput.current.x) > 0.01 || Math.abs(this.touchShootInput.current.y) > 0.01)) {
         player.rotation = Math.atan2(this.touchShootInput.current.y, this.touchShootInput.current.x);
       } else {
@@ -2131,6 +2141,13 @@ export class GameEngine {
               }
             }
           }
+        } else if (!projectile.wallPierce && projectile.owner === 'enemy') {
+          for (const obstacle of this.obstacles) {
+            if (checkProjectileObstacleCollision(projectile, obstacle)) {
+              this.createParticles(projectile.position, 5, projectile.color, 0.2);
+              return false;
+            }
+          }
         }
 
         return projectile.lifetime > 0;
@@ -3271,15 +3288,29 @@ export class GameEngine {
       const hasVoidDrone = this.gameState.drones.some(d => d.droneType === 'void_drone');
       
       if (hasVoidDrone) {
-        const blinkDistance = 120;
-        const blinkDir = vectorFromAngle(player.rotation);
+        const blinkDistance = 150;
+        
+        let blinkDir;
+        const currentSpeed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
+        
+        if (currentSpeed > 0.1) {
+          blinkDir = vectorNormalize(player.velocity);
+        } else {
+          blinkDir = vectorFromAngle(player.rotation);
+        }
+        
         const blinkTarget = vectorAdd(player.position, vectorScale(blinkDir, blinkDistance));
         
-        this.createParticles(player.position, 25, '#a78bfa', 0.8);
+        this.createParticles(player.position, 30, '#a78bfa', 0.8);
         player.position = { ...blinkTarget };
-        this.createParticles(player.position, 25, '#a78bfa', 0.8);
+        this.createParticles(player.position, 30, '#a78bfa', 0.8);
         
-        player.dashCooldown = PLAYER_DASH_COOLDOWN;
+        if (currentSpeed > 0) {
+          player.isGliding = true;
+          player.glideVelocity = { ...player.velocity };
+        }
+        
+        player.dashCooldown = PLAYER_DASH_COOLDOWN * 0.5;
         this.triggerDroneActiveAbilities('dash');
       } else {
         player.isDashing = true;

@@ -384,10 +384,10 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#a78bfa',
     passiveEffect: 'Projectiles ignore obstacles and terrain',
     passiveEffectValue: 1,
-    activeEffect: 'Void rift: Damaging portal for 5 seconds',
+    activeEffect: 'Void Blink: Teleport in movement direction, preserving momentum. Works perfectly with grapple.',
     activeTrigger: 'dash',
-    activeEffectDuration: 5,
-    activeEffectCooldown: 20,
+    activeEffectDuration: 0,
+    activeEffectCooldown: 8,
   },
 };
 

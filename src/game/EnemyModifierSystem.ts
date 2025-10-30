@@ -282,6 +282,12 @@ export class EnemyModifierSystem {
       case 'overcharge':
         this.updateOvercharge(enemy, dt, onParticleCreate);
         break;
+      case 'gravity':
+        this.updateGravity(enemy);
+        break;
+      case 'magnet':
+        this.updateMagnet(enemy);
+        break;
     }
   }
 
@@ -431,6 +437,14 @@ export class EnemyModifierSystem {
 
       onParticleCreate(enemy.position, 10, '#fbbf24', 0.5);
     }
+  }
+
+  private updateGravity(enemy: ModifiedEnemy): void {
+    if (!enemy.gravityPullRadius || !enemy.gravityStrength) return;
+  }
+
+  private updateMagnet(enemy: ModifiedEnemy): void {
+    if (!enemy.magnetRadius || !enemy.magnetStrength) return;
   }
 
   handleDamage(

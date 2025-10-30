@@ -188,31 +188,58 @@ export default function GameCanvas({
       }
 
       ctx.save();
-      ctx.fillStyle = projectile.color;
 
-      if (projectile.isChainLightning) {
+      if (projectile.weaponType === 'laser') {
+        const angle = Math.atan2(projectile.velocity.y, projectile.velocity.x);
+        const beamLength = projectile.size * 4;
+        const beamWidth = projectile.size / 2;
+
+        ctx.translate(screenPos.x, screenPos.y);
+        ctx.rotate(angle);
+
+        const gradient = ctx.createLinearGradient(-beamLength / 2, 0, beamLength / 2, 0);
+        gradient.addColorStop(0, projectile.color + '00');
+        gradient.addColorStop(0.3, projectile.color);
+        gradient.addColorStop(0.7, projectile.color);
+        gradient.addColorStop(1, projectile.color + '00');
+
+        ctx.fillStyle = gradient;
         ctx.shadowBlur = 25;
-        ctx.shadowColor = '#8b5cf6';
-      } else if (projectile.isCharged && projectile.chargeLevel) {
-        const glowSize = 20 + (projectile.chargeLevel * 15);
-        ctx.shadowBlur = glowSize;
-      } else if (projectile.homing) {
-        ctx.shadowBlur = 20;
-      } else if (projectile.explosive) {
-        ctx.shadowBlur = 18;
-      } else {
+        ctx.shadowColor = projectile.color;
+
+        ctx.fillRect(-beamLength / 2, -beamWidth, beamLength, beamWidth * 2);
+
+        ctx.fillStyle = '#ffffff';
         ctx.shadowBlur = 15;
-      }
+        ctx.fillRect(-beamLength / 3, -beamWidth / 2, beamLength * 0.66, beamWidth);
 
-      ctx.shadowColor = projectile.color;
-      ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, projectile.size / 2, 0, Math.PI * 2);
-      ctx.fill();
+      } else {
+        ctx.fillStyle = projectile.color;
 
-      if (projectile.homing) {
-        ctx.strokeStyle = projectile.color;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        if (projectile.isChainLightning) {
+          ctx.shadowBlur = 25;
+          ctx.shadowColor = '#8b5cf6';
+        } else if (projectile.isCharged && projectile.chargeLevel) {
+          const glowSize = 20 + (projectile.chargeLevel * 15);
+          ctx.shadowBlur = glowSize;
+        } else if (projectile.homing) {
+          ctx.shadowBlur = 20;
+        } else if (projectile.explosive) {
+          ctx.shadowBlur = 18;
+        } else {
+          ctx.shadowBlur = 15;
+        }
+
+        ctx.shadowColor = projectile.color;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, projectile.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (projectile.homing) {
+          ctx.strokeStyle = projectile.color;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
       }
 
       ctx.restore();
