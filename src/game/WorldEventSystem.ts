@@ -114,6 +114,7 @@ export interface PhaseBeaconData {
 
 export class WorldEventSystem {
   private events: Map<string, WorldEvent> = new Map();
+  private recentlySpawnedEvents: WorldEvent[] = [];
   private spawnTimer: number = 0;
   private readonly MIN_SPAWN_INTERVAL = 15; // Spawn events frequently (every 15 seconds min)
   private readonly MAX_SPAWN_INTERVAL = 45;
@@ -229,6 +230,7 @@ export class WorldEventSystem {
     const event = this.createEvent(eventType, position);
     if (event) {
       this.events.set(event.id, event);
+      this.recentlySpawnedEvents.push(event);
     }
   }
 
@@ -489,6 +491,67 @@ export class WorldEventSystem {
 
   clearAll(): void {
     this.events.clear();
+    this.recentlySpawnedEvents = [];
+  }
+
+  getRecentlySpawnedEvents(): WorldEvent[] {
+    return this.recentlySpawnedEvents;
+  }
+
+  clearRecentlySpawnedEvents(): void {
+    this.recentlySpawnedEvents = [];
+  }
+
+  getEventDisplayName(type: WorldEventType): string {
+    const names: Record<WorldEventType, string> = {
+      planar_raiders: 'Planar Raiders',
+      altar_boss: 'Altar Boss',
+      warp_storm: 'Warp Storm',
+      resource_asteroid: 'Resource Asteroid',
+      enemy_ambush: 'Enemy Ambush',
+      temporal_rift: 'Temporal Rift',
+      void_tear: 'Void Tear',
+      crystal_bloom: 'Crystal Bloom',
+      gravitational_anomaly: 'Gravitational Anomaly',
+      phase_beacon: 'Phase Beacon',
+    };
+    return names[type] || type;
+  }
+
+  serializeEvents(): any[] {
+    return Array.from(this.events.values()).map(event => {
+      const serializedEvent: any = { ...event };
+      
+      if (event.type === 'temporal_rift' && event.data) {
+        const data = event.data as TemporalRiftData;
+        serializedEvent.data = {
+          ...data,
+          affectedEnemies: Array.from(data.affectedEnemies || []),
+          affectedProjectiles: Array.from(data.affectedProjectiles || []),
+        };
+      }
+      
+      return serializedEvent;
+    });
+  }
+
+  hydrateEvents(serializedEvents: any[]): void {
+    this.events.clear();
+    
+    serializedEvents.forEach(eventData => {
+      const event: WorldEvent = { ...eventData };
+      
+      if (event.type === 'temporal_rift' && event.data) {
+        const data = event.data as any;
+        event.data = {
+          ...data,
+          affectedEnemies: new Set(data.affectedEnemies || []),
+          affectedProjectiles: new Set(data.affectedProjectiles || []),
+        } as TemporalRiftData;
+      }
+      
+      this.events.set(event.id, event);
+    });
   }
 }
 

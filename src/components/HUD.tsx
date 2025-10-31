@@ -5,10 +5,11 @@ import { useEffect, useState, useRef } from 'react';
 interface HUDProps {
   gameState: GameState;
   interactionText?: string;
+  onClearRecentEvents?: () => void;
 }
 
-export default function HUD({ gameState, interactionText }: HUDProps) {
-  const { player, currentBiomeName } = gameState;
+export default function HUD({ gameState, interactionText, onClearRecentEvents }: HUDProps) {
+  const { player, currentBiomeName, recentEventSpawns } = gameState;
   const healthPercent = (player.health / player.maxHealth) * 100;
   const dashPercent = player.dashCooldown > 0 
     ? Math.max(0, (1 - player.dashCooldown / 1.5) * 100) 
@@ -19,15 +20,43 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
     cooldown > 0 ? Math.max(0, (1 - cooldown / 4.0) * 100) : 100
   );
 
-  const [notification, setNotification] = useState<{ name: string; key: number } | null>(null);
+  const [notification, setNotification] = useState<{ name: string; type: 'biome' | 'event'; key: number } | null>(null);
   const prevBiomeNameRef = useRef(currentBiomeName);
 
   useEffect(() => {
     if (currentBiomeName && currentBiomeName !== prevBiomeNameRef.current) {
-      setNotification({ name: currentBiomeName, key: Date.now() });
+      setNotification({ name: currentBiomeName, type: 'biome', key: Date.now() });
       prevBiomeNameRef.current = currentBiomeName;
     }
   }, [currentBiomeName]);
+
+  useEffect(() => {
+    if (recentEventSpawns && recentEventSpawns.length > 0) {
+      const event = recentEventSpawns[0];
+      const eventName = getEventDisplayName(event.type);
+      setNotification({ name: eventName, type: 'event', key: Date.now() });
+      
+      if (onClearRecentEvents) {
+        setTimeout(() => onClearRecentEvents(), 100);
+      }
+    }
+  }, [recentEventSpawns, onClearRecentEvents]);
+
+  const getEventDisplayName = (type: string): string => {
+    const names: Record<string, string> = {
+      planar_raiders: 'Planar Raiders',
+      altar_boss: 'Altar Boss',
+      warp_storm: 'Warp Storm',
+      resource_asteroid: 'Resource Asteroid',
+      enemy_ambush: 'Enemy Ambush',
+      temporal_rift: 'Temporal Rift',
+      void_tear: 'Void Tear',
+      crystal_bloom: 'Crystal Bloom',
+      gravitational_anomaly: 'Gravitational Anomaly',
+      phase_beacon: 'Phase Beacon',
+    };
+    return names[type] || type;
+  };
 
   return (
     <>
@@ -36,9 +65,22 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
           key={notification.key}
           className="absolute top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
         >
-          <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg px-8 py-4 shadow-2xl shadow-cyan-500/10 text-center animate-fade-slide-down">
-            <p className="text-sm text-slate-400 tracking-widest uppercase">Entering</p>
-            <h2 className="text-3xl font-bold text-white tracking-wide">{notification.name}</h2>
+          <div className={`bg-slate-900/90 backdrop-blur-sm border ${
+            notification.type === 'event' ? 'border-orange-500/40 shadow-orange-500/20' : 'border-cyan-500/30 shadow-cyan-500/10'
+          } rounded-lg px-8 py-4 shadow-2xl text-center animate-fade-slide-down`}>
+            <p className={`text-sm tracking-widest uppercase ${
+              notification.type === 'event' ? 'text-orange-300' : 'text-slate-400'
+            }`}>
+              {notification.type === 'event' ? 'World Event' : 'Entering'}
+            </p>
+            <h2 className={`text-3xl font-bold tracking-wide ${
+              notification.type === 'event' ? 'text-orange-400' : 'text-white'
+            }`}>
+              {notification.name}
+            </h2>
+            {notification.type === 'event' && (
+              <p className="text-xs text-orange-200/70 mt-1">Check minimap for location</p>
+            )}
           </div>
         </div>
       )}

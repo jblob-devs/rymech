@@ -396,6 +396,17 @@ export interface RemotePlayer {
   interpolationAlpha?: number;
 }
 
+export interface WorldEvent {
+  id: string;
+  type: string;
+  position: Vector2;
+  radius: number;
+  lifetime: number;
+  maxLifetime: number;
+  isActive: boolean;
+  data: any;
+}
+
 export interface GameState {
   player: Player;
   remotePlayers: RemotePlayer[];
@@ -414,4 +425,6 @@ export interface GameState {
   currentBiomeName: string;
   damageNumbers: DamageNumber[];
   pvpEnabled: boolean;
+  worldEvents?: WorldEvent[];
+  recentEventSpawns?: WorldEvent[];
 }

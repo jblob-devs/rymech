@@ -15,7 +15,7 @@ const BLIP_SIZE = 3;
 
 export default function Minimap({ gameState, chests, extractionPoints, portals }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { player, enemies } = gameState;
+  const { player, enemies, worldEvents } = gameState;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -80,6 +80,48 @@ export default function Minimap({ gameState, chests, extractionPoints, portals }
     // Draw portals
     portals.forEach(portal => drawBlip(portal.position, '#a855f7', BLIP_SIZE + 2));
 
+    // Draw world events with special indicators
+    if (worldEvents) {
+      worldEvents.forEach(event => {
+        const mapX = (event.position.x - player.position.x) / MINIMAP_SCALE;
+        const mapY = (event.position.y - player.position.y) / MINIMAP_SCALE;
+        const distance = Math.sqrt(mapX * mapX + mapY * mapY);
+
+        // If event is off screen, draw direction indicator
+        if (distance > mapCenterX - 15) {
+          const angle = Math.atan2(mapY, mapX);
+          const indicatorX = Math.cos(angle) * (mapCenterX - 15);
+          const indicatorY = Math.sin(angle) * (mapCenterY - 15);
+
+          // Draw direction arrow
+          ctx.save();
+          ctx.translate(indicatorX, indicatorY);
+          ctx.rotate(angle);
+          
+          ctx.fillStyle = '#ff8800';
+          ctx.strokeStyle = '#ffaa00';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(8, 0);
+          ctx.lineTo(-4, -5);
+          ctx.lineTo(-4, 5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          // Draw on-screen event indicator
+          ctx.fillStyle = '#ff8800';
+          ctx.strokeStyle = '#ffaa00';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(mapX, mapY, BLIP_SIZE + 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      });
+    }
+
     ctx.restore();
 
     // Draw player in the center
@@ -91,7 +133,7 @@ export default function Minimap({ gameState, chests, extractionPoints, portals }
     ctx.closePath();
     ctx.fill();
 
-  }, [gameState, chests, extractionPoints, portals, player.position]);
+  }, [gameState, chests, extractionPoints, portals, player.position, worldEvents]);
 
   return (
     <div className="bg-slate-900/80 backdrop-blur-sm border-2 border-cyan-500/30 rounded-full shadow-lg w-[200px] h-[200px] overflow-hidden relative">

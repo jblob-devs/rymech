@@ -306,6 +306,11 @@ function App() {
             ? 'Press [F] to Awaken the Void Subdivider'
             : undefined
         }
+        onClearRecentEvents={() => {
+          if (gameEngineRef.current) {
+            gameEngineRef.current.clearRecentEventSpawns();
+          }
+        }}
       />
 
       {!gameState.isPaused && (

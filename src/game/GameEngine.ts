@@ -214,7 +214,19 @@ export class GameEngine {
   }
 
   getState(): GameState {
-    return this.gameState;
+    return {
+      ...this.gameState,
+      worldEvents: this.worldEventSystem.getActiveEvents(),
+      recentEventSpawns: this.worldEventSystem.getRecentlySpawnedEvents(),
+    };
+  }
+  
+  clearRecentEventSpawns(): void {
+    this.worldEventSystem.clearRecentlySpawnedEvents();
+  }
+  
+  getEventDisplayName(type: string): string {
+    return this.worldEventSystem.getEventDisplayName(type as any);
   }
 
   getCamera(): Camera {
@@ -459,6 +471,83 @@ export class GameEngine {
     this.updateInteractables(dt);
     this.updateDamageNumbers(dt);
     this.worldEventSystem.update(dt, this.gameState.player.position);
+    this.applyWorldEventEffects(dt);
+  }
+  
+  private applyWorldEventEffects(dt: number): void {
+    const player = this.gameState.player;
+    const events = this.worldEventSystem.getActiveEvents();
+    
+    for (const event of events) {
+      const distance = Math.sqrt(
+        Math.pow(player.position.x - event.position.x, 2) +
+        Math.pow(player.position.y - event.position.y, 2)
+      );
+      
+      // Apply effects based on event type
+      if (distance < event.radius) {
+        switch (event.type) {
+          case 'warp_storm': {
+            const data = event.data as any;
+            player.health -= (data.damagePerSecond || 15) * dt;
+            if (Math.random() < 0.1) {
+              this.createParticles(player.position, 2, '#8b5cf6', 0.3);
+            }
+            break;
+          }
+          
+          case 'temporal_rift': {
+            // Slow down player in temporal rift
+            if (player.velocity) {
+              player.velocity.x *= 0.95;
+              player.velocity.y *= 0.95;
+            }
+            break;
+          }
+          
+          case 'gravitational_anomaly': {
+            const data = event.data as any;
+            const toCenter = {
+              x: event.position.x - player.position.x,
+              y: event.position.y - player.position.y
+            };
+            const dist = Math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
+            if (dist > 0) {
+              const strength = data.mode === 'pull' ? data.pullStrength : -data.pushStrength;
+              const force = (strength || 200) / (dist + 1);
+              player.velocity.x += (toCenter.x / dist) * force * dt;
+              player.velocity.y += (toCenter.y / dist) * force * dt;
+            }
+            break;
+          }
+          
+          case 'crystal_bloom': {
+            const data = event.data as any;
+            if (data.healAmount && Math.random() < 0.05) {
+              player.health = Math.min(player.health + (data.healAmount || 5) * dt, player.maxHealth);
+              this.createParticles(player.position, 1, '#a7f3d0', 0.3);
+            }
+            break;
+          }
+          
+          case 'void_tear': {
+            const data = event.data as any;
+            const toCenter = {
+              x: event.position.x - player.position.x,
+              y: event.position.y - player.position.y
+            };
+            const dist = Math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
+            if (dist > 0 && dist < (data.size || event.radius)) {
+              const pullStrength = 300;
+              const force = pullStrength / (dist + 1);
+              player.velocity.x += (toCenter.x / dist) * force * dt;
+              player.velocity.y += (toCenter.y / dist) * force * dt;
+            }
+            break;
+          }
+        }
+      }
+    }
   }
 
   private updateObstacleOrbits(dt: number): void {
@@ -3443,6 +3532,20 @@ export class GameEngine {
       blinkDir = vectorFromAngle(player.rotation);
     }
     
+    // If grappling, detach and preserve momentum in blink direction
+    if (player.isGrappling) {
+      player.isGrappling = false;
+      player.isGliding = true;
+      
+      // Preserve grappling momentum and add blink boost
+      const blinkBoost = vectorScale(blinkDir, PLAYER_DASH_SPEED * 1.2);
+      player.glideVelocity = vectorAdd(player.velocity, blinkBoost);
+      
+      player.grappleTarget = undefined;
+      player.grappleTargetId = undefined;
+      player.grappleTargetType = undefined;
+    }
+    
     // Calculate blink target position
     const blinkTarget = vectorAdd(player.position, vectorScale(blinkDir, blinkDistance));
     
@@ -3455,8 +3558,8 @@ export class GameEngine {
     // Create particles at end position
     this.createParticles(player.position, 30, '#a78bfa', 0.8);
     
-    // Preserve momentum if moving
-    if (currentSpeed > 0) {
+    // Preserve momentum if moving (and not already handled by grapple detach)
+    if (currentSpeed > 0 && !player.isGliding) {
       player.isGliding = true;
       player.glideVelocity = { ...player.velocity };
     }
@@ -4209,7 +4312,7 @@ export class GameEngine {
     this.createParticles(this.gameState.player.position, 40, '#10b981', 0.7);
   }
 
-  getMultiplayerState(hostPeerId: string): Partial<GameState> {
+  getMultiplayerState(hostPeerId: string): Partial<GameState> & { voidSubdivider?: any } {
     const allPlayers: import('../types/game').RemotePlayer[] = [
       {
         id: 'host',
@@ -4235,6 +4338,8 @@ export class GameEngine {
       resourcesCollected: this.gameState.resourcesCollected,
       damageNumbers: this.gameState.damageNumbers,
       currentBiomeName: this.gameState.currentBiomeName,
+      worldEvents: this.worldEventSystem.serializeEvents(),
+      voidSubdivider: this.voidSubdivider,
     };
   }
 
@@ -4287,6 +4392,17 @@ export class GameEngine {
     if (state.score !== undefined) this.gameState.score = state.score;
     if (state.isPaused !== undefined) this.gameState.isPaused = state.isPaused;
     if (state.resourcesCollected !== undefined) this.gameState.resourcesCollected = state.resourcesCollected;
+    
+    // Sync void subdivider boss for all players
+    const stateWithBoss = state as any;
+    if (stateWithBoss.voidSubdivider !== undefined) {
+      this.voidSubdivider = stateWithBoss.voidSubdivider;
+    }
+    
+    // Sync world events with proper deserialization
+    if (stateWithBoss.worldEvents) {
+      this.worldEventSystem.hydrateEvents(stateWithBoss.worldEvents);
+    }
   }
 
   updateRemotePlayers(remotePlayers: import('../types/game').RemotePlayer[]): void {
@@ -4543,6 +4659,143 @@ export class GameEngine {
       remotePlayer.serverVelocity = { ...velocity };
       remotePlayer.interpolationAlpha = 1;
       console.log('Synced remote player position:', playerId, position);
+    }
+  }
+
+  saveProgress(): void {
+    const saveData = {
+      player: {
+        health: this.gameState.player.health,
+        maxHealth: this.gameState.player.maxHealth,
+        currency: this.gameState.player.currency,
+        resources: this.gameState.player.resources,
+        position: this.gameState.player.position,
+      },
+      inventory: {
+        weapons: this.inventory.getWeapons(),
+        drones: this.inventory.getDrones(),
+      },
+      score: this.gameState.score,
+      resourcesCollected: this.gameState.resourcesCollected,
+      craftingRecipes: Array.from(this.craftingSystem.getDiscoveredRecipes().map(r => r.id)),
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem('shattered_expanse_save', JSON.stringify(saveData));
+    console.log('Progress saved successfully');
+  }
+
+  loadProgress(): boolean {
+    try {
+      const savedData = localStorage.getItem('shattered_expanse_save');
+      if (!savedData) return false;
+
+      const saveData = JSON.parse(savedData);
+
+      this.gameState.player.health = saveData.player.health || this.gameState.player.health;
+      this.gameState.player.maxHealth = saveData.player.maxHealth || this.gameState.player.maxHealth;
+      this.gameState.player.currency = saveData.player.currency || 0;
+      this.gameState.player.resources = { ...this.gameState.player.resources, ...saveData.player.resources };
+      
+      if (saveData.player.position) {
+        this.gameState.player.position = saveData.player.position;
+        this.loadChunksAroundPlayer();
+      }
+
+      if (saveData.score) this.gameState.score = saveData.score;
+      if (saveData.resourcesCollected) this.gameState.resourcesCollected = saveData.resourcesCollected;
+
+      if (saveData.inventory) {
+        if (saveData.inventory.weapons) {
+          saveData.inventory.weapons.forEach((weaponData: any) => {
+            this.inventory.addWeapon(weaponData.weapon, weaponData.level);
+          });
+        }
+        if (saveData.inventory.drones) {
+          saveData.inventory.drones.forEach((droneData: any) => {
+            this.inventory.addDrone(droneData.droneType);
+            if (droneData.equipped) {
+              this.inventory.equipDrone(droneData.droneType);
+            }
+          });
+        }
+      }
+
+      console.log('Progress loaded successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to load progress:', error);
+      return false;
+    }
+  }
+
+  exportSave(): string {
+    const saveData = {
+      player: {
+        health: this.gameState.player.health,
+        maxHealth: this.gameState.player.maxHealth,
+        currency: this.gameState.player.currency,
+        resources: this.gameState.player.resources,
+        position: this.gameState.player.position,
+      },
+      inventory: {
+        weapons: this.inventory.getWeapons(),
+        drones: this.inventory.getDrones(),
+      },
+      score: this.gameState.score,
+      resourcesCollected: this.gameState.resourcesCollected,
+      craftingRecipes: Array.from(this.craftingSystem.getDiscoveredRecipes().map(r => r.id)),
+      timestamp: Date.now(),
+      version: '1.0.0',
+    };
+
+    return JSON.stringify(saveData, null, 2);
+  }
+
+  importSave(saveDataString: string): boolean {
+    try {
+      const saveData = JSON.parse(saveDataString);
+
+      if (!saveData.player || !saveData.version) {
+        throw new Error('Invalid save data format');
+      }
+
+      this.gameState.player.health = saveData.player.health || this.gameState.player.health;
+      this.gameState.player.maxHealth = saveData.player.maxHealth || this.gameState.player.maxHealth;
+      this.gameState.player.currency = saveData.player.currency || 0;
+      this.gameState.player.resources = { ...this.gameState.player.resources, ...saveData.player.resources };
+      
+      if (saveData.player.position) {
+        this.gameState.player.position = saveData.player.position;
+        this.loadChunksAroundPlayer();
+      }
+
+      if (saveData.score) this.gameState.score = saveData.score;
+      if (saveData.resourcesCollected) this.gameState.resourcesCollected = saveData.resourcesCollected;
+
+      if (saveData.inventory) {
+        this.inventory = new PlayerInventory();
+        
+        if (saveData.inventory.weapons) {
+          saveData.inventory.weapons.forEach((weaponData: any) => {
+            this.inventory.addWeapon(weaponData.weapon, weaponData.level);
+          });
+        }
+        if (saveData.inventory.drones) {
+          saveData.inventory.drones.forEach((droneData: any) => {
+            this.inventory.addDrone(droneData.droneType);
+            if (droneData.equipped) {
+              this.inventory.equipDrone(droneData.droneType);
+            }
+          });
+        }
+      }
+
+      console.log('Save imported successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to import save:', error);
+      return false;
     }
   }
 }
