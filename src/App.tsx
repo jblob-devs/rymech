@@ -170,6 +170,13 @@ function App() {
         gameEngineRef.current.manuallyActivateDroneAbility(manualDrones[2].droneType);
       }
       
+      if (key === 'x') {
+        const state = gameEngineRef.current.getState();
+        if ((state as any).activeExplosiveProjectile) {
+          gameEngineRef.current.detonateExplosiveProjectile();
+        }
+      }
+      
       gameEngineRef.current.setKeys(prev => new Set(prev).add(key));
     };
 
@@ -304,9 +311,15 @@ function App() {
       {!gameState.isPaused && (
         <DroneAbilities
           drones={gameState.drones}
+          gameState={gameState}
           onManualActivate={(droneType) => {
             if (gameEngineRef.current) {
               gameEngineRef.current.manuallyActivateDroneAbility(droneType);
+            }
+          }}
+          onDetonateExplosive={() => {
+            if (gameEngineRef.current) {
+              gameEngineRef.current.detonateExplosiveProjectile();
             }
           }}
         />

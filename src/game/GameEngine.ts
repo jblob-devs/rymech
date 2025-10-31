@@ -413,6 +413,11 @@ export class GameEngine {
     this.updateMinibosses(dt);
     this.checkMinibossSpawns(dt);
     this.updateDrones(dt);
+    this.updateSlowingAreas(dt);
+    this.updateExplosiveProjectiles(dt);
+    this.updateRepairDroneHealing(dt);
+    this.updateScoutDroneStealth();
+    this.updateShieldDroneActiveEffect();
     this.updateVoidSubdividerBoss(dt);
     this.checkVoidSubdividerSpawn();
     this.modifierSystem.updateModifiers(
@@ -3777,6 +3782,178 @@ export class GameEngine {
           break;
       }
     });
+  }
+
+  private updateSlowingAreas(dt: number): void {
+    if (!this.gameState.slowingAreas) return;
+    
+    this.gameState.slowingAreas = this.gameState.slowingAreas.filter(area => {
+      area.lifetime -= dt;
+      if (area.lifetime <= 0) return false;
+      
+      // Move the bomb if it has velocity and hasn't started expanding
+      if (area.velocity && !area.isExpanding) {
+        area.position.x += area.velocity.x * dt;
+        area.position.y += area.velocity.y * dt;
+        
+        // Check if it traveled 300 units or hit obstacle
+        const travelDist = Math.sqrt(area.velocity.x ** 2 + area.velocity.y ** 2) * dt;
+        if (!area.traveledDistance) area.traveledDistance = 0;
+        area.traveledDistance += travelDist;
+        
+        // Start expanding after traveling 300 units
+        if (area.traveledDistance >= 300) {
+          area.isExpanding = true;
+          area.velocity = undefined;
+        }
+      }
+      
+      // Expand the area if it's expanding
+      if (area.isExpanding && area.radius < area.maxRadius) {
+        area.radius += 150 * dt; // Expand at 150 units/sec
+        if (area.radius > area.maxRadius) {
+          area.radius = area.maxRadius;
+        }
+      }
+      
+      // Apply slow effect to enemies in range
+      if (area.radius > 0) {
+        this.gameState.enemies.forEach(enemy => {
+          const dist = Math.sqrt(
+            (enemy.position.x - area.position.x) ** 2 +
+            (enemy.position.y - area.position.y) ** 2
+          );
+          if (dist <= area.radius) {
+            enemy.isSlow = true;
+            enemy.slowPercent = area.slowPercent;
+            enemy.slowEndTime = Date.now() + 500; // 0.5s slow duration
+          }
+        });
+      }
+      
+      return true;
+    });
+  }
+
+  private updateExplosiveProjectiles(dt: number): void {
+    const activeProj = (this.gameState as any).activeExplosiveProjectile;
+    if (!activeProj) return;
+    
+    // Move the projectile
+    activeProj.position.x += activeProj.velocity.x * dt;
+    activeProj.position.y += activeProj.velocity.y * dt;
+    activeProj.lifetime -= dt;
+    
+    // Check collision with enemies
+    let shouldExplode = activeProj.lifetime <= 0;
+    this.gameState.enemies.forEach(enemy => {
+      const dist = Math.sqrt(
+        (enemy.position.x - activeProj.position.x) ** 2 +
+        (enemy.position.y - activeProj.position.y) ** 2
+      );
+      if (dist <= activeProj.size) {
+        shouldExplode = true;
+      }
+    });
+    
+    if (shouldExplode) {
+      // Create explosion
+      this.createExplosion(activeProj.position, activeProj.explosionRadius, activeProj.damage);
+      this.createParticles(activeProj.position, 60, '#fb923c', 1.0);
+      (this.gameState as any).activeExplosiveProjectile = null;
+    }
+  }
+
+  detonateExplosiveProjectile(): void {
+    const activeProj = (this.gameState as any).activeExplosiveProjectile;
+    if (activeProj) {
+      this.createExplosion(activeProj.position, activeProj.explosionRadius, activeProj.damage);
+      this.createParticles(activeProj.position, 60, '#fb923c', 1.0);
+      (this.gameState as any).activeExplosiveProjectile = null;
+    }
+  }
+
+  private updateRepairDroneHealing(dt: number): void {
+    const player = this.gameState.player;
+    
+    // Check if repair drone active regen is active
+    if ((player as any).repairDroneActiveRegen && (player as any).repairDroneRequiresStill) {
+      const now = Date.now();
+      
+      // Check if player is standing still (velocity near zero)
+      const velocityMag = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
+      const isStandingStill = velocityMag < 5; // Very low velocity threshold
+      
+      if (isStandingStill) {
+        // Apply healing over time
+        if (player.health < player.maxHealth) {
+          const healAmount = 5 * dt; // 5 HP per second when standing still
+          player.health = Math.min(player.maxHealth, player.health + healAmount);
+          
+          // Particles every 0.5 seconds
+          if (!this.gameState.lastRepairParticleTime) {
+            this.gameState.lastRepairParticleTime = 0;
+          }
+          this.gameState.lastRepairParticleTime += dt;
+          if (this.gameState.lastRepairParticleTime >= 0.5) {
+            this.createParticles(player.position, 5, '#34d399', 0.4);
+            this.gameState.lastRepairParticleTime = 0;
+          }
+        }
+      }
+      
+      // Check if effect expired
+      if (now >= ((player as any).repairDroneActiveRegenEndTime || 0)) {
+        (player as any).repairDroneActiveRegen = false;
+        (player as any).repairDroneRequiresStill = false;
+      }
+    }
+  }
+
+  private updateScoutDroneStealth(): void {
+    const player = this.gameState.player;
+    
+    // Apply detection reduction to enemies if stealth is active
+    if ((player as any).scoutDroneStealthActive) {
+      const now = Date.now();
+      const detectionReduction = (player as any).detectionReduction || 0.7;
+      
+      this.gameState.enemies.forEach(enemy => {
+        // Reduce detection range by 70%
+        const baseDetectionRange = 400; // Normal aggro range
+        enemy.detectionRange = baseDetectionRange * (1 - detectionReduction);
+      });
+      
+      // Check if effect expired
+      if (now >= ((player as any).scoutDroneStealthEndTime || 0)) {
+        (player as any).scoutDroneStealthActive = false;
+        (player as any).isInvisibleOnRadar = false;
+        (player as any).detectionReduction = 0;
+        
+        // Restore normal detection ranges
+        this.gameState.enemies.forEach(enemy => {
+          enemy.detectionRange = 400;
+        });
+      }
+    }
+  }
+
+  private updateShieldDroneActiveEffect(): void {
+    const player = this.gameState.player;
+    
+    // Apply shield drone active reduction to total reduction
+    if ((player as any).shieldDroneActiveReduction) {
+      const now = Date.now();
+      
+      if (now < ((player as any).shieldDroneActiveEndTime || 0)) {
+        // Add active reduction on top of passive
+        const activeReduction = (player as any).shieldDroneActiveReduction;
+        (player as any).shieldDamageReduction = ((player as any).shieldDamageReduction || 0) + activeReduction;
+      } else {
+        // Clear active reduction when expired
+        (player as any).shieldDroneActiveReduction = 0;
+      }
+    }
   }
 
   private syncDrones(): void {

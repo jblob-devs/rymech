@@ -245,6 +245,86 @@ export default function GameCanvas({
       ctx.restore();
     });
 
+    // Render slowing areas (cryo drone bomb)
+    if ((gameState as any).slowingAreas) {
+      (gameState as any).slowingAreas.forEach((area: any) => {
+        if (!camera.isInView(area.position)) return;
+        const screenPos = camera.worldToScreen(area.position);
+        
+        ctx.save();
+        
+        // Draw the moving bomb or expanding area
+        if (area.radius < area.maxRadius || !area.isExpanding) {
+          // Bomb is still moving
+          ctx.fillStyle = '#22d3ee';
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = '#22d3ee';
+          ctx.beginPath();
+          ctx.arc(screenPos.x, screenPos.y, 15, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Draw expanding slowing area
+        if (area.radius > 0) {
+          const gradient = ctx.createRadialGradient(
+            screenPos.x, screenPos.y, 0,
+            screenPos.x, screenPos.y, area.radius
+          );
+          gradient.addColorStop(0, 'rgba(34, 211, 238, 0.3)');
+          gradient.addColorStop(0.7, 'rgba(34, 211, 238, 0.15)');
+          gradient.addColorStop(1, 'rgba(34, 211, 238, 0)');
+          
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(screenPos.x, screenPos.y, area.radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw ring at edge
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.6;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+        
+        ctx.restore();
+      });
+    }
+
+    // Render explosive giant projectile
+    const explosiveProj = (gameState as any).activeExplosiveProjectile;
+    if (explosiveProj && camera.isInView(explosiveProj.position)) {
+      const screenPos = camera.worldToScreen(explosiveProj.position);
+      
+      ctx.save();
+      
+      // Draw giant glowing projectile
+      const gradient = ctx.createRadialGradient(
+        screenPos.x, screenPos.y, 0,
+        screenPos.x, screenPos.y, explosiveProj.size
+      );
+      gradient.addColorStop(0, '#fff');
+      gradient.addColorStop(0.3, '#fb923c');
+      gradient.addColorStop(0.7, '#f97316');
+      gradient.addColorStop(1, '#ea580c');
+      
+      ctx.fillStyle = gradient;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#fb923c';
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, explosiveProj.size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add outer glow
+      ctx.strokeStyle = '#fb923c';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+      
+      ctx.restore();
+    }
+
     const modifierSystem = engine.getModifierSystem();
 
     gameState.enemies.forEach(enemy => {
@@ -272,6 +352,41 @@ export default function GameCanvas({
     }
     
     drawPlayer(ctx, gameState.player, camera);
+    
+    // Draw shield drone rotating shield
+    const shieldActive = (gameState.player as any).shieldDroneActiveReduction > 0;
+    if (shieldActive) {
+      const playerScreenPos = camera.worldToScreen(gameState.player.position);
+      const time = Date.now() * 0.003;
+      const shieldRadius = 40;
+      const shieldCount = 3;
+      
+      ctx.save();
+      for (let i = 0; i < shieldCount; i++) {
+        const angle = (time + (i / shieldCount) * Math.PI * 2) % (Math.PI * 2);
+        const x = playerScreenPos.x + Math.cos(angle) * shieldRadius;
+        const y = playerScreenPos.y + Math.sin(angle) * shieldRadius;
+        
+        // Draw shield segment
+        ctx.fillStyle = '#60a5fa';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#60a5fa';
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw connecting arc
+        const nextAngle = angle + (Math.PI * 2 / shieldCount);
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.arc(playerScreenPos.x, playerScreenPos.y, shieldRadius, angle, nextAngle);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     
     gameState.remotePlayers?.forEach((remotePlayer) => {
       const remoteActiveWeapon = remotePlayer.player.equippedWeapons[remotePlayer.player.activeWeaponIndex];
@@ -1275,7 +1390,7 @@ export default function GameCanvas({
             ctx.translate(segmentScreenPos.x, segmentScreenPos.y);
             
             const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, segment.size / 2);
-            gradient.addColorStop(0, enemy.secondaryColor || '#06b6d4');
+            gradient.addColorStop(0, (enemy as any).secondaryColor || '#06b6d4');
             gradient.addColorStop(0.5, enemy.color);
             gradient.addColorStop(1, '#064e5e');
             ctx.fillStyle = gradient;
@@ -1410,8 +1525,8 @@ export default function GameCanvas({
         ctx.fill();
         ctx.shadowBlur = 0;
         
-        if (enemy.orbitalCannons && enemy.orbitalCannons.length > 0) {
-          enemy.orbitalCannons.forEach((cannon: any) => {
+        if ((enemy as any).orbitalCannons && (enemy as any).orbitalCannons.length > 0) {
+          (enemy as any).orbitalCannons.forEach((cannon: any) => {
             const cannonScreenPos = camera.worldToScreen(cannon.position);
             ctx.save();
             ctx.shadowBlur = 8;

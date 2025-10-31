@@ -1,15 +1,18 @@
 import React from 'react';
-import { Drone, DroneType } from '../types/game';
+import { Drone, DroneType, GameState } from '../types/game';
 import { DRONE_DEFINITIONS } from '../game/DroneSystem';
 
 interface DroneAbilitiesProps {
   drones: Drone[];
   onManualActivate: (droneType: DroneType) => void;
+  gameState?: GameState;
+  onDetonateExplosive?: () => void;
 }
 
 const MANUAL_KEYS = ['Q', 'E', 'R'] as const;
 
-export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManualActivate }) => {
+export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManualActivate, gameState, onDetonateExplosive }) => {
+  const hasActiveExplosiveProjectile = gameState && (gameState as any).activeExplosiveProjectile;
   const manualDrones = drones.filter(drone => {
     const def = DRONE_DEFINITIONS[drone.droneType];
     return def.activeTrigger === 'manual' && def.activeEffect;
@@ -84,6 +87,33 @@ export const DroneAbilities: React.FC<DroneAbilitiesProps> = ({ drones, onManual
           </div>
         );
       })}
+
+      {hasActiveExplosiveProjectile && onDetonateExplosive && (
+        <div className="pointer-events-auto">
+          <button
+            onClick={onDetonateExplosive}
+            className="
+              bg-orange-600 hover:bg-orange-500 active:bg-orange-700
+              border-2 border-orange-400 rounded-lg p-3 w-[200px]
+              shadow-lg shadow-orange-400/50
+              transition-all duration-200
+              animate-pulse
+            "
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-sm bg-white text-orange-600">
+                  X
+                </div>
+                <span className="text-white font-semibold text-sm">DETONATE</span>
+              </div>
+            </div>
+            <div className="text-xs text-orange-100">
+              Press X or click to detonate the giant explosive projectile
+            </div>
+          </button>
+        </div>
+      )}
 
       {autoDrones.length > 0 && (
         <div className="border-t-2 border-gray-700 pt-2 mt-2">
