@@ -62,6 +62,8 @@ import { MinibossUpdateSystem } from './MinibossUpdateSystem';
 import { MinibossLootSystem } from './MinibossLootSystem';
 import type { MinibossSubtype } from '../types/game';
 import { DroneSystem } from './DroneSystem';
+import { WorldEventSystem } from './WorldEventSystem';
+import { WorldEventRenderer } from './WorldEventRenderer';
 
 export class GameEngine {
   private gameState: GameState;
@@ -101,6 +103,8 @@ export class GameEngine {
   private minibossSpawnCheckTimer: number = 0;
   private droneSystem: DroneSystem;
   private recentEnemyDeaths: Array<{ x: number; y: number; timestamp: number }> = [];
+  private worldEventSystem: WorldEventSystem;
+  private worldEventRenderer: WorldEventRenderer;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -119,6 +123,8 @@ export class GameEngine {
     this.minibossUpdateSystem = new MinibossUpdateSystem();
     this.minibossLootSystem = new MinibossLootSystem();
     this.droneSystem = new DroneSystem();
+    this.worldEventSystem = new WorldEventSystem();
+    this.worldEventRenderer = new WorldEventRenderer();
     this.gameState = this.createInitialState();
     this.biomeManager.setWorldGenerator(this.worldGenerator);
 
@@ -152,7 +158,7 @@ export class GameEngine {
       dashCooldown: PLAYER_DASH_COOLDOWN,
       dashDuration: PLAYER_DASH_DURATION,
       isDashing: false,
-      hasBlinkEquipped: true,
+      hasBlinkEquipped: false,
       blinkCharges: 3,
       blinkCooldowns: [0, 0, 0],
       blinkMaxCharges: 3,
@@ -241,6 +247,14 @@ export class GameEngine {
 
   getEnvironmentalParticles(): BiomeParticle[] {
     return this.biomeManager.getEnvironmentalParticles();
+  }
+
+  getWorldEvents() {
+    return this.worldEventSystem.getActiveEvents();
+  }
+
+  getWorldEventRenderer() {
+    return this.worldEventRenderer;
   }
 
   getBiomeFeatures(): AnyBiomeFeature[] {
@@ -444,6 +458,7 @@ export class GameEngine {
     this.handleExtractionPoints();
     this.updateInteractables(dt);
     this.updateDamageNumbers(dt);
+    this.worldEventSystem.update(dt, this.gameState.player.position);
   }
 
   private updateObstacleOrbits(dt: number): void {
@@ -487,6 +502,9 @@ export class GameEngine {
 
   private updatePlayer(dt: number): void {
     const player = this.gameState.player;
+    
+    // Check if void drone is equipped to enable blink
+    player.hasBlinkEquipped = player.equippedDrones.includes('void_drone');
 
     if (player.isGrappling) {
       // Resolve the grapple target position based on target type
@@ -4330,7 +4348,7 @@ export class GameEngine {
       dashCooldown: PLAYER_DASH_COOLDOWN,
       dashDuration: PLAYER_DASH_DURATION,
       isDashing: false,
-      hasBlinkEquipped: true,
+      hasBlinkEquipped: false,
       blinkCharges: 3,
       blinkCooldowns: [0, 0, 0],
       blinkMaxCharges: 3,

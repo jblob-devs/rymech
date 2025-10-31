@@ -10,11 +10,13 @@ interface HUDProps {
 export default function HUD({ gameState, interactionText }: HUDProps) {
   const { player, currentBiomeName } = gameState;
   const healthPercent = (player.health / player.maxHealth) * 100;
-  const dashPercent = Math.max(0, (1 - player.dashCooldown / 1.5) * 100);
+  const dashPercent = player.dashCooldown > 0 
+    ? Math.max(0, (1 - player.dashCooldown / 1.5) * 100) 
+    : 100;
   
   // Calculate blink charge percentages (each charge takes 4 seconds to recharge)
   const blinkChargePercents = player.blinkCooldowns.map(cooldown => 
-    Math.max(0, (1 - cooldown / 4.0) * 100)
+    cooldown > 0 ? Math.max(0, (1 - cooldown / 4.0) * 100) : 100
   );
 
   const [notification, setNotification] = useState<{ name: string; key: number } | null>(null);

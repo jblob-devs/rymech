@@ -145,6 +145,13 @@ export default function GameCanvas({
     drawExtractionPoints(ctx, extractionPoints, camera, currentBiome);
     drawEnvironmentalParticles(ctx, envParticles, camera);
 
+    // Render world events
+    const worldEvents = engine.getWorldEvents();
+    const worldEventRenderer = engine.getWorldEventRenderer();
+    if (worldEvents && worldEventRenderer) {
+      worldEventRenderer.render(ctx, worldEvents, camera);
+    }
+
     const activeWeapon = gameState.player.equippedWeapons[gameState.player.activeWeaponIndex];
     if (activeWeapon?.firingMode === 'beam' && activeWeapon.isBeaming && !activeWeapon.beamOverheated) {
       drawBeamLaser(ctx, gameState.player, activeWeapon, camera, obstacles);
