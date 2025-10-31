@@ -25,6 +25,8 @@ MechaRyan is a top-down action survival game built with React, TypeScript, and V
 - Randomizable melee weapon Forms system (all Forms can roll on any melee weapon)
 - Melee weapon Forms with player movement (dash, lunge effects)
 - Projectile deflection mechanics for melee weapons
+- Blink ability system (3 charges, 4s recharge) activated by void drone equipment
+- World events system with 10 unique dynamic events spawning throughout the game
 - Crafting and inventory management
 - Multiple biomes with unique features and clustered resource spawning
 - Wave-based enemy system with 8 unique miniboss encounters
@@ -55,7 +57,7 @@ Configured for Replit Autoscale deployment:
 ## Game Controls
 - **WASD/Arrow Keys**: Move character
 - **Mouse**: Aim and shoot
-- **Space**: Dash
+- **Space**: Dash (or Blink when void drone is equipped)
 - **I**: Open inventory
 - **C**: Open crafting menu
 - **F**: Interact with objects
@@ -69,6 +71,27 @@ Configured for Replit Autoscale deployment:
 - Deployment configuration complete
 
 ## Recent Changes
+- October 31, 2025: Blink Ability System & World Events
+  - **Blink Ability System**: Implemented alternative movement ability that replaces dash when void drone is equipped
+    - 3 individual charges that recharge separately (4 seconds per charge)
+    - Teleports player forward in movement direction with particle effects
+    - HUD dynamically switches between dash bar and blink bar (3 charge indicators) based on equipped drones
+    - Dash is the default ability - blink activates only when void_drone is equipped
+  - **World Events System**: Created comprehensive dynamic event system with 10 unique event types
+    - **Planar Raiders**: Elite patrol enemies that spawn portals to random biomes when defeated
+    - **Altar Boss**: Interactable altars that summon giant bosses (Void Dragon, Reality Hydra, Temporal Serpent, Crystal Titan)
+    - **Warp Storm**: Massive void tornado with damage zones and rare resource drops
+    - **Resource Asteroid**: Harvestable asteroids containing valuable resources (energy, flux, cores)
+    - **Enemy Ambush**: Hidden enemy spawns triggered when players enter the area
+    - **Temporal Rift**: Time dilation zones that slow down enemies caught inside
+    - **Void Tear**: Gravitational anomaly that pulls entities toward its center with damage
+    - **Crystal Bloom**: Beneficial zone providing damage boost and healing to players
+    - **Gravitational Anomaly**: Alternates between pulling and pushing entities (3-7 second cycles)
+    - **Phase Beacon**: Periodically phases in and out of reality
+  - **Event Spawning**: Events spawn automatically every 15-45 seconds around the player (300-800 units away)
+  - **Visual System**: Custom renderer for all event types with particles, gradients, and animations
+  - **Architecture**: Modular WorldEventSystem and WorldEventRenderer fully integrated into GameEngine and GameCanvas
+
 - October 29, 2025: UI & Drone Balance Overhaul
   - **UI Simplification**: Removed score display, condensed health/dash into single compact card, moved currency to Resources inventory tab
   - **Drone Size & Spacing Fixes**: Reduced drone sizes from 10-14 to 6-8 units, increased orbit radius from 50-75 to 80-115 units, increased hover offset from 40 to 80 units to prevent player overlap
