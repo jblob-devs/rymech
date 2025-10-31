@@ -446,6 +446,8 @@ export class GameEngine {
     this.updateSlowingAreas(dt);
     this.updateExplosiveProjectiles(dt);
     this.updateRepairDroneHealing(dt);
+    this.updateEmpWaves(dt);
+    this.updateHealingPools(dt);
     this.updateScoutDroneStealth();
     this.updateShieldDroneActiveEffect();
     this.updateVoidSubdividerBoss(dt);
@@ -2526,7 +2528,18 @@ export class GameEngine {
                 }
               }
 
-              this.createParticles(enemy.position, 5, enemy.color, 0.3);
+              if ((projectile as any).droneType === 'emp_drone') {
+                enemy.isStunned = true;
+                enemy.stunnedEndTime = Date.now() + 1000;
+                this.createParticles(enemy.position, 15, '#fde047', 0.6);
+              }
+
+              if ((projectile as any).droneType === 'explosive_drone' && projectile.explosive) {
+                this.createParticles(enemy.position, 30, '#fb923c', 0.8);
+                this.createParticles(enemy.position, 20, '#ff6600', 0.6);
+              } else {
+                this.createParticles(enemy.position, 5, enemy.color, 0.3);
+              }
 
               if (projectile.chainCount && projectile.chainCount > 0 && !projectile.chainedFrom) {
                 const chainRange = projectile.maxRange ? Math.min(projectile.maxRange * 0.3, 200) : 200;
@@ -3462,9 +3475,9 @@ export class GameEngine {
         // Calculate dash direction
         const dashDir = vectorFromAngle(player.rotation);
 
-        // Preserve grappling momentum and add dash boost
+        // Preserve grappling momentum and add dash boost (reduced from 0.7 to 0.5)
         const currentSpeed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
-        const dashBoost = vectorScale(dashDir, PLAYER_DASH_SPEED * 0.7);
+        const dashBoost = vectorScale(dashDir, PLAYER_DASH_SPEED * 0.5);
 
         // Keep all current momentum and add dash boost
         player.glideVelocity = vectorAdd(player.velocity, dashBoost);
@@ -3479,7 +3492,7 @@ export class GameEngine {
       const hasVoidDrone = this.gameState.drones.some(d => d.droneType === 'void_drone');
       
       if (hasVoidDrone) {
-        const blinkDistance = 150;
+        const blinkDistance = 100;
         
         let blinkDir;
         const currentSpeed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
@@ -3520,7 +3533,7 @@ export class GameEngine {
       return;
     }
     
-    const blinkDistance = 150;
+    const blinkDistance = 100;
     
     // Determine blink direction (prefer movement direction over facing direction)
     let blinkDir;
@@ -3537,8 +3550,8 @@ export class GameEngine {
       player.isGrappling = false;
       player.isGliding = true;
       
-      // Preserve grappling momentum and add blink boost
-      const blinkBoost = vectorScale(blinkDir, PLAYER_DASH_SPEED * 1.2);
+      // Preserve grappling momentum and add blink boost (reduced from 1.2 to 0.8)
+      const blinkBoost = vectorScale(blinkDir, PLAYER_DASH_SPEED * 0.8);
       player.glideVelocity = vectorAdd(player.velocity, blinkBoost);
       
       player.grappleTarget = undefined;
@@ -3754,7 +3767,7 @@ export class GameEngine {
           id: `heal_${Date.now()}`,
           position: { ...player.position },
           radius: 150,
-          healPerSecond: 15,
+          healPerSecond: 1,
           lifetime: definition.activeEffectDuration || 6,
           ownerId: player.id
         });
@@ -3801,19 +3814,43 @@ export class GameEngine {
         break;
       
       case 'emp_drone':
-        const empRadius = 350;
-        this.gameState.enemies.forEach(enemy => {
-          const dist = Math.sqrt(
-            Math.pow(enemy.position.x - player.position.x, 2) +
-            Math.pow(enemy.position.y - player.position.y, 2)
-          );
-          if (dist <= empRadius) {
-            enemy.isStunned = true;
-            enemy.stunnedEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
-            this.createParticles(enemy.position, 12, '#fde047', 0.4);
+        const currentHealthPercent = player.health / player.maxHealth;
+        const lastEmpHealth = (player as any).lastEmpDroneHealth || 1.0;
+        
+        const shouldTriggerEmp = 
+          (currentHealthPercent <= 0.75 && lastEmpHealth > 0.75) ||
+          (currentHealthPercent <= 0.50 && lastEmpHealth > 0.50) ||
+          (currentHealthPercent <= 0.25 && lastEmpHealth > 0.25);
+        
+        if (shouldTriggerEmp) {
+          const empRadius = 350;
+          this.gameState.enemies.forEach(enemy => {
+            const dist = Math.sqrt(
+              Math.pow(enemy.position.x - player.position.x, 2) +
+              Math.pow(enemy.position.y - player.position.y, 2)
+            );
+            if (dist <= empRadius) {
+              enemy.isStunned = true;
+              enemy.stunnedEndTime = Date.now() + (definition.activeEffectDuration || 1) * 1000;
+              this.createParticles(enemy.position, 12, '#fde047', 0.4);
+            }
+          });
+          
+          if (!this.gameState.empWaves) {
+            this.gameState.empWaves = [];
           }
-        });
-        this.createParticles(player.position, 50, '#fde047', 0.9);
+          this.gameState.empWaves.push({
+            id: `emp_wave_${Date.now()}`,
+            position: { ...player.position },
+            radius: 0,
+            maxRadius: empRadius,
+            lifetime: 0.5,
+            color: '#fde047'
+          });
+          
+          this.createParticles(player.position, 60, '#fde047', 1.0);
+          (player as any).lastEmpDroneHealth = currentHealthPercent;
+        }
         break;
       
       case 'swarm_drone':
@@ -3846,8 +3883,8 @@ export class GameEngine {
         break;
       
       case 'plasma_drone':
-        drone.overchargeActive = true;
-        drone.overchargeEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
+        drone.plasmaDroneBeamActive = true;
+        drone.plasmaDroneBeamEndTime = Date.now() + (definition.activeEffectDuration || 4) * 1000;
         this.createParticles(drone.position, 30, '#a78bfa', 0.7);
         break;
       
@@ -3863,14 +3900,14 @@ export class GameEngine {
           id: `explosive_proj_${Date.now()}`,
           position: { ...player.position },
           velocity: projVelocity,
-          size: 20,
-          damage: 100,
-          explosionRadius: 250,
+          size: 25,
+          damage: 150,
+          explosionRadius: 350,
           lifetime: definition.activeEffectDuration || 8,
           ownerId: player.id,
           droneType: 'explosive_drone'
         };
-        this.createParticles(player.position, 30, '#fb923c', 0.7);
+        this.createParticles(player.position, 40, '#fb923c', 0.9);
         break;
       
       case 'laser_drone':
@@ -4065,46 +4102,88 @@ export class GameEngine {
     const activeProj = (this.gameState as any).activeExplosiveProjectile;
     if (activeProj) {
       this.createExplosion(activeProj.position, activeProj.explosionRadius, activeProj.damage);
-      this.createParticles(activeProj.position, 60, '#fb923c', 1.0);
+      this.createParticles(activeProj.position, 100, '#fb923c', 1.2);
+      this.createParticles(activeProj.position, 80, '#ff4400', 1.0);
+      this.createParticles(activeProj.position, 60, '#ffaa00', 0.8);
       (this.gameState as any).activeExplosiveProjectile = null;
     }
   }
 
   private updateRepairDroneHealing(dt: number): void {
     const player = this.gameState.player;
+    const hasRepairDrone = this.gameState.drones.some(d => d.droneType === 'repair_drone');
     
-    // Check if repair drone active regen is active
-    if ((player as any).repairDroneActiveRegen && (player as any).repairDroneRequiresStill) {
-      const now = Date.now();
+    if (!hasRepairDrone) {
+      (player as any).repairDroneStillTimer = 0;
+      (player as any).repairDroneHealedAmount = 0;
+      return;
+    }
+    
+    const velocityMag = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
+    const isStandingStill = velocityMag < 5;
+    
+    if (isStandingStill) {
+      if (!(player as any).repairDroneStillTimer) {
+        (player as any).repairDroneStillTimer = 0;
+      }
+      (player as any).repairDroneStillTimer += dt;
       
-      // Check if player is standing still (velocity near zero)
-      const velocityMag = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
-      const isStandingStill = velocityMag < 5; // Very low velocity threshold
-      
-      if (isStandingStill) {
-        // Apply healing over time
-        if (player.health < player.maxHealth) {
-          const healAmount = 5 * dt; // 5 HP per second when standing still
-          player.health = Math.min(player.maxHealth, player.health + healAmount);
+      if ((player as any).repairDroneStillTimer >= 3.0) {
+        if (!(player as any).repairDroneHealedAmount) {
+          (player as any).repairDroneHealedAmount = 0;
+        }
+        
+        if ((player as any).repairDroneHealedAmount < 15 && player.health < player.maxHealth) {
+          const healAmount = 7.5 * dt;
+          const actualHealAmount = Math.min(healAmount, 15 - (player as any).repairDroneHealedAmount, player.maxHealth - player.health);
+          player.health += actualHealAmount;
+          (player as any).repairDroneHealedAmount += actualHealAmount;
           
-          // Particles every 0.5 seconds
           if (!this.gameState.lastRepairParticleTime) {
             this.gameState.lastRepairParticleTime = 0;
           }
           this.gameState.lastRepairParticleTime += dt;
-          if (this.gameState.lastRepairParticleTime >= 0.5) {
-            this.createParticles(player.position, 5, '#34d399', 0.4);
+          if (this.gameState.lastRepairParticleTime >= 0.3) {
+            this.createParticles(player.position, 8, '#34d399', 0.5);
             this.gameState.lastRepairParticleTime = 0;
           }
         }
       }
-      
-      // Check if effect expired
-      if (now >= ((player as any).repairDroneActiveRegenEndTime || 0)) {
-        (player as any).repairDroneActiveRegen = false;
-        (player as any).repairDroneRequiresStill = false;
-      }
+    } else {
+      (player as any).repairDroneStillTimer = 0;
+      (player as any).repairDroneHealedAmount = 0;
     }
+  }
+
+  private updateEmpWaves(dt: number): void {
+    if (!this.gameState.empWaves) return;
+    
+    this.gameState.empWaves = this.gameState.empWaves.filter((wave: any) => {
+      wave.lifetime -= dt;
+      return wave.lifetime > 0;
+    });
+  }
+
+  private updateHealingPools(dt: number): void {
+    if (!this.gameState.healingPools) return;
+    
+    this.gameState.healingPools = this.gameState.healingPools.filter((pool: any) => {
+      pool.lifetime -= dt;
+      
+      if (pool.lifetime <= 0) return false;
+      
+      const player = this.gameState.player;
+      const dist = Math.sqrt(
+        Math.pow(player.position.x - pool.position.x, 2) +
+        Math.pow(player.position.y - pool.position.y, 2)
+      );
+      
+      if (dist <= pool.radius && player.health < player.maxHealth) {
+        player.health = Math.min(player.maxHealth, player.health + pool.healPerSecond * dt);
+      }
+      
+      return true;
+    });
   }
 
   private updateScoutDroneStealth(): void {

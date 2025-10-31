@@ -298,6 +298,88 @@ export default function GameCanvas({
       });
     }
 
+    // Render healing pools (medic drone)
+    if ((gameState as any).healingPools) {
+      (gameState as any).healingPools.forEach((pool: any) => {
+        if (!camera.isInView(pool.position)) return;
+        const screenPos = camera.worldToScreen(pool.position);
+        
+        ctx.save();
+        
+        // Draw semitransparent radial circle
+        const gradient = ctx.createRadialGradient(
+          screenPos.x, screenPos.y, 0,
+          screenPos.x, screenPos.y, pool.radius
+        );
+        gradient.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
+        gradient.addColorStop(0.5, 'rgba(34, 197, 94, 0.15)');
+        gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, pool.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw ring at edge
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        
+        // Draw pulsing cross symbol in center
+        const pulseSize = 15 + Math.sin(Date.now() / 200) * 3;
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(screenPos.x - pulseSize, screenPos.y);
+        ctx.lineTo(screenPos.x + pulseSize, screenPos.y);
+        ctx.moveTo(screenPos.x, screenPos.y - pulseSize);
+        ctx.lineTo(screenPos.x, screenPos.y + pulseSize);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        
+        ctx.restore();
+      });
+    }
+
+    // Render EMP waves
+    if ((gameState as any).empWaves) {
+      (gameState as any).empWaves.forEach((wave: any) => {
+        if (!camera.isInView(wave.position)) return;
+        const screenPos = camera.worldToScreen(wave.position);
+        
+        ctx.save();
+        
+        // Draw expanding electric wave
+        const progress = 1 - (wave.lifetime / 0.5);
+        const currentRadius = wave.maxRadius * progress;
+        
+        // Outer electric ring
+        ctx.strokeStyle = wave.color;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 1 - progress;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = wave.color;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, currentRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Inner electric ring
+        if (progress < 0.7) {
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = (1 - progress) * 0.5;
+          ctx.beginPath();
+          ctx.arc(screenPos.x, screenPos.y, currentRadius * 0.7, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        
+        ctx.globalAlpha = 1.0;
+        ctx.restore();
+      });
+    }
+
     // Render explosive giant projectile
     const explosiveProj = (gameState as any).activeExplosiveProjectile;
     if (explosiveProj && camera.isInView(explosiveProj.position)) {
@@ -305,28 +387,41 @@ export default function GameCanvas({
       
       ctx.save();
       
-      // Draw giant glowing projectile
+      // Draw stylized giant glowing projectile with trailing effect
       const gradient = ctx.createRadialGradient(
         screenPos.x, screenPos.y, 0,
-        screenPos.x, screenPos.y, explosiveProj.size
+        screenPos.x, screenPos.y, explosiveProj.size * 1.5
       );
       gradient.addColorStop(0, '#fff');
-      gradient.addColorStop(0.3, '#fb923c');
-      gradient.addColorStop(0.7, '#f97316');
-      gradient.addColorStop(1, '#ea580c');
+      gradient.addColorStop(0.2, '#fb923c');
+      gradient.addColorStop(0.5, '#f97316');
+      gradient.addColorStop(0.8, '#ea580c');
+      gradient.addColorStop(1, 'rgba(234, 88, 12, 0)');
       
       ctx.fillStyle = gradient;
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = '#fb923c';
+      ctx.shadowBlur = 40;
+      ctx.shadowColor = '#ff6600';
       ctx.beginPath();
-      ctx.arc(screenPos.x, screenPos.y, explosiveProj.size, 0, Math.PI * 2);
+      ctx.arc(screenPos.x, screenPos.y, explosiveProj.size * 1.5, 0, Math.PI * 2);
       ctx.fill();
       
-      // Add outer glow
-      ctx.strokeStyle = '#fb923c';
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.5;
-      ctx.stroke();
+      // Draw core
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(screenPos.x, screenPos.y, explosiveProj.size * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add rotating energy rings
+      const time = Date.now() / 100;
+      for (let i = 0; i < 3; i++) {
+        ctx.strokeStyle = i % 2 === 0 ? '#fb923c' : '#f97316';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, explosiveProj.size * (0.8 + i * 0.2), time + i, time + i + Math.PI);
+        ctx.stroke();
+      }
       ctx.globalAlpha = 1.0;
       
       ctx.restore();

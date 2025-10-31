@@ -48,8 +48,8 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#f87171',
     passiveEffect: '+15% damage to all player weapons',
     passiveEffectValue: 0.15,
-    activeEffect: 'Fire rate boost after dash for 3s',
-    activeTrigger: 'dash',
+    activeEffect: 'Manual: +100% fire rate for 3s',
+    activeTrigger: 'manual',
     activeEffectDuration: 3,
     activeEffectCooldown: 10,
   },
@@ -96,7 +96,7 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#34d399',
     passiveEffect: 'Regenerates 1 HP every 3 seconds',
     passiveEffectValue: 0.333,
-    activeEffect: 'Regen when still 3s: +25 HP over 5s',
+    activeEffect: 'Auto: Stand still 3s to heal 15 HP max',
     activeTrigger: 'manual',
     activeEffectDuration: 5,
     activeEffectCooldown: 20,
@@ -128,10 +128,10 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
   plasma_drone: {
     type: 'plasma_drone',
     name: 'Plasma Drone',
-    description: 'Fires superheated plasma bolts that pierce enemies',
+    description: 'Fires laser beams at enemies with powerful beam attack',
     canAttack: true,
-    damage: 8,
-    fireRate: 1.2,
+    damage: 3,
+    fireRate: 0.15,
     orbitRadius: 95,
     orbitSpeed: 2.2,
     size: 7,
@@ -139,13 +139,13 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     color: '#8b5cf6',
     secondaryColor: '#7c3aed',
     detectionRadius: 320,
-    projectileSpeed: 14,
-    projectileSize: 8,
+    projectileSpeed: 25,
+    projectileSize: 4,
     projectileColor: '#a78bfa',
-    passiveEffect: 'Drone projectiles pierce through enemies',
+    passiveEffect: 'Fires continuous laser beams',
     passiveEffectValue: 1,
-    activeEffect: 'Overcharge: Triple damage for 4 seconds',
-    activeTrigger: 'shoot',
+    activeEffect: 'Manual: Large beam laser for 4s',
+    activeTrigger: 'manual',
     activeEffectDuration: 4,
     activeEffectCooldown: 14,
   },
@@ -200,10 +200,10 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
   emp_drone: {
     type: 'emp_drone',
     name: 'EMP Drone',
-    description: 'Disrupts enemy shields and systems',
+    description: 'Disrupts enemy shields and systems with EMP',
     canAttack: true,
-    damage: 6,
-    fireRate: 1.1,
+    damage: 8,
+    fireRate: 3.0,
     orbitRadius: 92,
     orbitSpeed: 2.1,
     size: 7,
@@ -214,12 +214,12 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileSpeed: 13,
     projectileSize: 6,
     projectileColor: '#fde047',
-    passiveEffect: 'Drone shots disable enemy abilities briefly',
+    passiveEffect: 'Shots disable enemies for 1s with EMP',
     passiveEffectValue: 1,
-    activeEffect: 'EMP blast: Stun all nearby enemies for 4 seconds',
-    activeTrigger: 'weaponSwap',
-    activeEffectDuration: 4,
-    activeEffectCooldown: 24,
+    activeEffect: 'Auto: EMP blast at 75%/50%/25% HP',
+    activeTrigger: 'takeDamage',
+    activeEffectDuration: 1,
+    activeEffectCooldown: 1,
   },
   sniper_drone: {
     type: 'sniper_drone',
@@ -336,7 +336,7 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     projectileColor: '#4ade80',
     passiveEffect: 'Regenerates 4 HP/sec',
     passiveEffectValue: 4,
-    activeEffect: 'Healing pool: Area heal for 6s',
+    activeEffect: 'Healing pool: 1HP/s area heal for 6s',
     activeTrigger: 'manual',
     activeEffectDuration: 6,
     activeEffectCooldown: 30,
@@ -568,7 +568,7 @@ export class DroneSystem {
     const direction = vectorNormalize(vectorSubtract(targetPosition, drone.position));
     const velocity = vectorScale(direction, definition.projectileSpeed);
 
-    createProjectile({
+    const projectile: any = {
       id: generateId(),
       position: { ...drone.position },
       velocity,
@@ -580,7 +580,20 @@ export class DroneSystem {
       lifetime: 2.5,
       piercing: false,
       piercingCount: 0,
-    });
+      droneType: drone.droneType,
+    };
+
+    if (drone.droneType === 'explosive_drone') {
+      projectile.explosive = true;
+      projectile.explosionRadius = 80;
+    }
+
+    if (drone.droneType === 'plasma_drone') {
+      projectile.piercing = true;
+      projectile.piercingCount = 999;
+    }
+
+    createProjectile(projectile);
   }
 
   getDroneDefinition(droneType: DroneType): DroneDefinition {

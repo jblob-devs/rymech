@@ -44,20 +44,23 @@ Import process fully verified and operational. All systems ready for development
 Completed:
 1. ✓ Blink ability system (3 charges, 4s recharge per charge) - DONE
 2. ✓ Dynamic blink/dash bar in HUD showing 3 charge indicators - DONE
-3. ✓ World Event System created with 10 event types:
-   - Planar Raiders (patrol enemies with portal spawns)
-   - Altar Boss (summonable giant bosses)
-   - Warp Storm (void tornado with damage & resources)
-   - Resource Asteroid (harvestable resources)
-   - Enemy Ambush (surprise attacks)
-   - Temporal Rift (time dilation zones)
-   - Void Tear (gravitational pull zones)
-   - Crystal Bloom (healing/buff zones)
-   - Gravitational Anomaly (push/pull mechanics)
-   - Phase Beacon (phasing objects)
-4. ✓ WorldEventRenderer created with custom visuals for all events
+3. ✓ World Event System created with 10 event types - DONE
+4. ✓ WorldEventRenderer created with custom visuals for all events - DONE
 
-All development features completed and integrated successfully.
+**Drone System Improvements - October 31, 2025:**
+
+Completed:
+1. ✓ Assault Drone - Changed to manual activation, +100% fire rate boost for 3s
+2. ✓ Repair Drone - Auto-activates after standing still 3s, heals max 15 HP per session
+3. ✓ Explosive Drone - Improved AoE visuals, stylized giant projectile, bigger detonation
+4. ✓ EMP Drone - Shoots infrequently (3s fire rate), stuns on hit, auto EMP at 75%/50%/25% HP
+5. ✓ Void Drone & Blink - Nerfed blink distance (150→100), reduced grapple velocity boost
+6. ✓ Medic Drone - Added visual healing pool with pulsing cross, 1 HP/s healing
+7. ✓ Plasma Drone - Fires laser beams (fast fire rate, piercing)
+8. ⧗ Shield Drone - Shields around drone (in progress)
+9. ⧗ Plasma Drone Active - Large continuous beam laser (in progress)
+
+All development features in progress.
 
 ---
 
