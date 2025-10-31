@@ -152,6 +152,10 @@ export class GameEngine {
       dashCooldown: PLAYER_DASH_COOLDOWN,
       dashDuration: PLAYER_DASH_DURATION,
       isDashing: false,
+      hasBlinkEquipped: true,
+      blinkCharges: 3,
+      blinkCooldowns: [0, 0, 0],
+      blinkMaxCharges: 3,
       currency: 0,
       equippedWeapons: [],
       equippedDrones: [],
@@ -656,6 +660,17 @@ export class GameEngine {
       if (player.dashDuration <= 0) {
         player.isDashing = false;
         player.dashDuration = PLAYER_DASH_DURATION;
+      }
+    }
+
+    // Update blink charge cooldowns (4 seconds per charge)
+    for (let i = 0; i < player.blinkCooldowns.length; i++) {
+      if (player.blinkCooldowns[i] > 0) {
+        player.blinkCooldowns[i] -= dt;
+        if (player.blinkCooldowns[i] <= 0) {
+          player.blinkCooldowns[i] = 0;
+          player.blinkCharges = Math.min(player.blinkCharges + 1, player.blinkMaxCharges);
+        }
       }
     }
 
@@ -3324,6 +3339,13 @@ export class GameEngine {
 
   dash(): void {
     const player = this.gameState.player;
+    
+    // Use blink if equipped
+    if (player.hasBlinkEquipped) {
+      this.blink();
+      return;
+    }
+    
     if (player.dashCooldown <= 0 && !player.isDashing) {
       // If grappling, detach and enter glide mode with full momentum
       if (player.isGrappling) {
@@ -3381,6 +3403,60 @@ export class GameEngine {
         this.triggerDroneActiveAbilities('dash');
       }
     }
+  }
+
+  blink(): void {
+    const player = this.gameState.player;
+    
+    // Check if we have charges available
+    if (player.blinkCharges <= 0) {
+      return;
+    }
+    
+    const blinkDistance = 150;
+    
+    // Determine blink direction (prefer movement direction over facing direction)
+    let blinkDir;
+    const currentSpeed = Math.sqrt(player.velocity.x ** 2 + player.velocity.y ** 2);
+    
+    if (currentSpeed > 0.1) {
+      blinkDir = vectorNormalize(player.velocity);
+    } else {
+      blinkDir = vectorFromAngle(player.rotation);
+    }
+    
+    // Calculate blink target position
+    const blinkTarget = vectorAdd(player.position, vectorScale(blinkDir, blinkDistance));
+    
+    // Create particles at start position
+    this.createParticles(player.position, 30, '#a78bfa', 0.8);
+    
+    // Teleport player
+    player.position = { ...blinkTarget };
+    
+    // Create particles at end position
+    this.createParticles(player.position, 30, '#a78bfa', 0.8);
+    
+    // Preserve momentum if moving
+    if (currentSpeed > 0) {
+      player.isGliding = true;
+      player.glideVelocity = { ...player.velocity };
+    }
+    
+    // Use a charge - find the first available slot and set its cooldown
+    player.blinkCharges--;
+    const BLINK_CHARGE_COOLDOWN = 4.0; // 4 seconds per charge
+    
+    // Set cooldown on the first available slot (find first that's at 0)
+    for (let i = 0; i < player.blinkCooldowns.length; i++) {
+      if (player.blinkCooldowns[i] === 0) {
+        player.blinkCooldowns[i] = BLINK_CHARGE_COOLDOWN;
+        break;
+      }
+    }
+    
+    // Trigger drone abilities
+    this.triggerDroneActiveAbilities('dash');
   }
 
   switchWeapon(index: number): void {
@@ -4254,6 +4330,10 @@ export class GameEngine {
       dashCooldown: PLAYER_DASH_COOLDOWN,
       dashDuration: PLAYER_DASH_DURATION,
       isDashing: false,
+      hasBlinkEquipped: true,
+      blinkCharges: 3,
+      blinkCooldowns: [0, 0, 0],
+      blinkMaxCharges: 3,
       currency: 0,
       equippedWeapons,
       equippedDrones: [],

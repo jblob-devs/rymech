@@ -11,6 +11,11 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
   const { player, currentBiomeName } = gameState;
   const healthPercent = (player.health / player.maxHealth) * 100;
   const dashPercent = Math.max(0, (1 - player.dashCooldown / 1.5) * 100);
+  
+  // Calculate blink charge percentages (each charge takes 4 seconds to recharge)
+  const blinkChargePercents = player.blinkCooldowns.map(cooldown => 
+    Math.max(0, (1 - cooldown / 4.0) * 100)
+  );
 
   const [notification, setNotification] = useState<{ name: string; key: number } | null>(null);
   const prevBiomeNameRef = useRef(currentBiomeName);
@@ -49,21 +54,47 @@ export default function HUD({ gameState, interactionText }: HUDProps) {
             />
           </div>
           
-          <div className="flex items-center gap-2 mb-1.5 mt-2">
-            <Zap className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-[10px] font-bold text-slate-300 tracking-wide">DASH</span>
-            <span className="text-[10px] text-slate-400 ml-auto">{dashPercent === 100 ? 'READY' : 'RECHARGING'}</span>
-          </div>
-          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-            <div
-              className={`h-full transition-all duration-100 ${
-                dashPercent === 100
-                  ? 'bg-gradient-to-r from-cyan-400 to-cyan-300 shadow-lg shadow-cyan-400/50'
-                  : 'bg-slate-600'
-              }`}
-              style={{ width: `${dashPercent}%` }}
-            />
-          </div>
+          {player.hasBlinkEquipped ? (
+            <>
+              <div className="flex items-center gap-2 mb-1.5 mt-2">
+                <Zap className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-bold text-slate-300 tracking-wide">BLINK</span>
+                <span className="text-[10px] text-slate-400 ml-auto">{player.blinkCharges}/3</span>
+              </div>
+              <div className="flex gap-1">
+                {blinkChargePercents.map((percent, index) => (
+                  <div key={index} className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                    <div
+                      className={`h-full transition-all duration-100 ${
+                        percent === 100
+                          ? 'bg-gradient-to-r from-purple-500 to-purple-300 shadow-lg shadow-purple-400/50'
+                          : 'bg-slate-600'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1.5 mt-2">
+                <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] font-bold text-slate-300 tracking-wide">DASH</span>
+                <span className="text-[10px] text-slate-400 ml-auto">{dashPercent === 100 ? 'READY' : 'RECHARGING'}</span>
+              </div>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                <div
+                  className={`h-full transition-all duration-100 ${
+                    dashPercent === 100
+                      ? 'bg-gradient-to-r from-cyan-400 to-cyan-300 shadow-lg shadow-cyan-400/50'
+                      : 'bg-slate-600'
+                  }`}
+                  style={{ width: `${dashPercent}%` }}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-2 shadow-lg">

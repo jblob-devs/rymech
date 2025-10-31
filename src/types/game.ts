@@ -43,6 +43,10 @@ export interface Player extends Entity {
   isDashing: boolean;
   dashCooldown: number;
   dashDuration: number;
+  hasBlinkEquipped: boolean;
+  blinkCharges: number;
+  blinkCooldowns: number[];
+  blinkMaxCharges: number;
   currency: number;
   equippedWeapons: Weapon[];
   equippedDrones: DroneType[];
