@@ -65,6 +65,8 @@ import { DroneSystem } from './DroneSystem';
 import { WorldEventSystem } from './WorldEventSystem';
 import { WorldEventRenderer } from './WorldEventRenderer';
 import { SaveSystem, SaveData } from './SaveSystem';
+import { VaultSystem } from './VaultSystem';
+import { PlanarAnchorSystem } from './PlanarAnchorSystem';
 
 export class GameEngine {
   private gameState: GameState;
@@ -107,6 +109,8 @@ export class GameEngine {
   private worldEventSystem: WorldEventSystem;
   private worldEventRenderer: WorldEventRenderer;
   private saveSystem: SaveSystem;
+  private vaultSystem: VaultSystem;
+  private planarAnchorSystem: PlanarAnchorSystem;
   private currentHarvestingAsteroidId: string | null = null;
 
   constructor() {
@@ -129,7 +133,16 @@ export class GameEngine {
     this.worldEventSystem = new WorldEventSystem();
     this.worldEventRenderer = new WorldEventRenderer();
     this.saveSystem = new SaveSystem();
+    this.vaultSystem = new VaultSystem();
+    this.planarAnchorSystem = new PlanarAnchorSystem();
     this.gameState = this.createInitialState();
+    
+    // Create base camp anchor at spawn point
+    const baseCampAnchor = this.planarAnchorSystem.createBaseCampAnchor(
+      createVector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)
+    );
+    this.gameState.planarAnchors.push(baseCampAnchor);
+    this.gameState.activeRespawnAnchor = baseCampAnchor.id;
     this.biomeManager.setWorldGenerator(this.worldGenerator);
     
     // Try to load save data first
@@ -226,6 +239,8 @@ export class GameEngine {
       currentBiomeName: 'Veridian Nexus',
       damageNumbers: [],
       pvpEnabled: false,
+      planarRemnants: [],
+      planarAnchors: [],
     };
   }
 
@@ -234,6 +249,8 @@ export class GameEngine {
       ...this.gameState,
       worldEvents: this.worldEventSystem.getActiveEvents(),
       recentEventSpawns: this.worldEventSystem.getRecentlySpawnedEvents(),
+      planarRemnants: this.planarAnchorSystem.getAllRemnants(),
+      planarAnchors: this.planarAnchorSystem.getAllAnchors(),
     };
   }
   
@@ -3703,10 +3720,12 @@ export class GameEngine {
     
     return this.saveSystem.save(
       this.inventory,
+      this.vaultSystem,
       this.gameState.player.resources,
       this.gameState.player.currency,
       equippedWeaponIds,
-      equippedDroneTypes
+      equippedDroneTypes,
+      this.gameState.activeRespawnAnchor
     );
   }
 
@@ -3740,6 +3759,25 @@ export class GameEngine {
     saveData.inventory.consumables.forEach(consumable => {
       this.inventory.addConsumable(consumable);
     });
+
+    // Restore vault
+    if (saveData.vault) {
+      this.vaultSystem.clear();
+      saveData.vault.weapons.forEach(({ weapon, equipped }) => {
+        this.vaultSystem.addWeapon(weapon, equipped);
+      });
+      saveData.vault.drones.forEach(({ droneType, equipped }) => {
+        this.vaultSystem.addDrone(droneType, equipped);
+      });
+      saveData.vault.resources.forEach(([resourceType, amount]) => {
+        this.vaultSystem.addResource(resourceType as any, amount);
+      });
+    }
+
+    // Restore active respawn anchor
+    if (saveData.activeRespawnAnchor) {
+      this.gameState.activeRespawnAnchor = saveData.activeRespawnAnchor;
+    }
 
     console.log('[GameEngine] Save data loaded successfully');
   }
@@ -4418,22 +4456,50 @@ export class GameEngine {
     this.gameState.player.velocity = createVector();
     this.gameState.isGameOver = false;
     
+    // Clear inventory (items are in the remnant now)
+    this.inventory = new PlayerInventory();
+    this.gameState.player.equippedWeapons = [];
+    this.gameState.player.equippedDrones = [];
+    this.gameState.drones = [];
+    this.gameState.player.consumables = [];
+    
+    // Clear resources and currency
+    Object.keys(this.gameState.player.resources).forEach(key => {
+      this.gameState.player.resources[key as keyof typeof this.gameState.player.resources] = 0;
+    });
+    this.gameState.player.currency = 0;
+    
+    // Respawn at active anchor or base camp
     if (spawnPosition) {
-      const offsetX = (Math.random() - 0.5) * 100;
-      const offsetY = (Math.random() - 0.5) * 100;
+      const offsetX = (Math.random() - 0.5) * 50;
+      const offsetY = (Math.random() - 0.5) * 50;
       this.gameState.player.position = {
         x: spawnPosition.x + offsetX,
         y: spawnPosition.y + offsetY,
       };
     } else {
-      this.gameState.player.position = createVector(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      const respawnPos = this.planarAnchorSystem.getRespawnPosition();
+      this.gameState.player.position = { ...respawnPos };
     }
+    
+    console.log('[GameEngine] Player respawned at', this.gameState.player.position);
   }
 
   private checkPlayerDeath(): void {
     if (this.gameState.player.health <= 0 && !this.gameState.isGameOver) {
       this.gameState.isGameOver = true;
       this.createParticles(this.gameState.player.position, 20, '#ff0000', 1.0);
+      
+      // Create planar remnant at death location with all inventory items
+      const remnant = this.planarAnchorSystem.createPlanarRemnant(
+        { ...this.gameState.player.position },
+        this.inventory,
+        this.gameState.player.resources,
+        this.gameState.player.currency
+      );
+      this.gameState.planarRemnants.push(remnant);
+      
+      console.log('[GameEngine] Player died - Planar remnant created at position', remnant.position);
     }
   }
 
@@ -4993,5 +5059,96 @@ export class GameEngine {
       console.error('Failed to import save:', error);
       return false;
     }
+  }
+
+  // Planar Anchor and Remnant Methods
+  getVaultSystem(): VaultSystem {
+    return this.vaultSystem;
+  }
+
+  getPlanarAnchorSystem(): PlanarAnchorSystem {
+    return this.planarAnchorSystem;
+  }
+
+  collectRemnant(remnantId: string): boolean {
+    const remnant = this.planarAnchorSystem.collectRemnant(remnantId);
+    if (remnant) {
+      // Restore all items from the remnant to inventory
+      remnant.weapons.forEach((weaponData: any) => {
+        this.inventory.addWeapon(weaponData.weapon);
+        if (weaponData.equipped) {
+          this.inventory.equipWeapon(weaponData.weapon.id);
+        }
+      });
+
+      remnant.drones.forEach((droneData: any) => {
+        this.inventory.addDrone(droneData.droneType);
+        if (droneData.equipped) {
+          this.inventory.equipDrone(droneData.droneType);
+        }
+      });
+
+      remnant.consumables.forEach((consumable: any) => {
+        this.inventory.addConsumable(consumable);
+      });
+
+      // Restore resources
+      Object.keys(remnant.resources).forEach(resourceType => {
+        const amount = remnant.resources[resourceType];
+        this.gameState.player.resources[resourceType as keyof typeof this.gameState.player.resources] += amount;
+      });
+
+      // Restore currency
+      this.gameState.player.currency += remnant.currency;
+
+      this.syncEquippedWeapons();
+      this.syncDrones();
+
+      // Remove remnant from game state
+      this.gameState.planarRemnants = this.gameState.planarRemnants.filter(r => r.id !== remnantId);
+
+      console.log('[GameEngine] Collected planar remnant', remnantId);
+      return true;
+    }
+    return false;
+  }
+
+  activateAnchor(anchorId: string): boolean {
+    const success = this.planarAnchorSystem.activateAnchor(anchorId);
+    if (success) {
+      console.log('[GameEngine] Activated planar anchor', anchorId);
+    }
+    return success;
+  }
+
+  setRespawnAnchor(anchorId: string): boolean {
+    const success = this.planarAnchorSystem.setRespawnAnchor(anchorId);
+    if (success) {
+      this.gameState.activeRespawnAnchor = anchorId;
+      console.log('[GameEngine] Set respawn anchor to', anchorId);
+    }
+    return success;
+  }
+
+  findNearbyAnchor(maxDistance: number = 100): { id: string; position: Vector2; distance: number } | null {
+    const anchor = this.planarAnchorSystem.findNearbyAnchor(this.gameState.player.position, maxDistance);
+    if (anchor) {
+      const dx = anchor.position.x - this.gameState.player.position.x;
+      const dy = anchor.position.y - this.gameState.player.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return { id: anchor.id, position: anchor.position, distance };
+    }
+    return null;
+  }
+
+  findNearbyRemnant(maxDistance: number = 100): { id: string; position: Vector2; distance: number } | null {
+    const remnant = this.planarAnchorSystem.findNearbyRemnant(this.gameState.player.position, maxDistance);
+    if (remnant) {
+      const dx = remnant.position.x - this.gameState.player.position.x;
+      const dy = remnant.position.y - this.gameState.player.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return { id: remnant.id, position: remnant.position, distance };
+    }
+    return null;
   }
 }

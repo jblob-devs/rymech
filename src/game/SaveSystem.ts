@@ -1,5 +1,6 @@
 import { Weapon, DroneType, Consumable } from '../types/game';
 import { PlayerInventory } from './PlayerInventory';
+import { VaultSystem } from './VaultSystem';
 
 export interface SaveData {
   version: string;
@@ -8,6 +9,11 @@ export interface SaveData {
     weapons: Array<{ weapon: Weapon; equipped: boolean }>;
     drones: Array<{ droneType: DroneType; equipped: boolean }>;
     consumables: Consumable[];
+  };
+  vault: {
+    weapons: Array<{ weapon: Weapon; equipped: boolean }>;
+    drones: Array<{ droneType: DroneType; equipped: boolean }>;
+    resources: Array<[string, number]>;
   };
   resources: {
     energy: number;
@@ -31,6 +37,7 @@ export interface SaveData {
   currency: number;
   equippedWeaponIds: string[];
   equippedDroneTypes: DroneType[];
+  activeRespawnAnchor?: string;
 }
 
 export class SaveSystem {
@@ -54,12 +61,15 @@ export class SaveSystem {
 
   save(
     inventory: PlayerInventory,
+    vault: VaultSystem,
     resources: SaveData['resources'],
     currency: number,
     equippedWeaponIds: string[],
-    equippedDroneTypes: DroneType[]
+    equippedDroneTypes: DroneType[],
+    activeRespawnAnchor?: string
   ): boolean {
     try {
+      const vaultData = vault.exportData();
       const saveData: SaveData = {
         version: SaveSystem.VERSION,
         timestamp: Date.now(),
@@ -68,10 +78,16 @@ export class SaveSystem {
           drones: inventory.getDrones(),
           consumables: inventory.getConsumables(),
         },
+        vault: {
+          weapons: vaultData.weapons,
+          drones: vaultData.drones,
+          resources: Array.from(vaultData.resources.entries()),
+        },
         resources,
         currency,
         equippedWeaponIds,
         equippedDroneTypes,
+        activeRespawnAnchor,
       };
 
       const jsonData = JSON.stringify(saveData);

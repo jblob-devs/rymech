@@ -13,6 +13,7 @@ import { ResourceIconRenderer } from '../game/ResourceIconRenderer';
 import { renderVoidSubdivider } from '../game/VoidSubdividerRenderer';
 import { renderMiniboss } from '../game/MinibossRenderer';
 import { DroneRenderer } from '../game/DroneRenderer';
+import { PlanarRenderer } from '../game/PlanarRenderer';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -41,6 +42,7 @@ export default function GameCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const featureRendererRef = useRef<BiomeFeatureRenderer>(new BiomeFeatureRenderer());
   const droneRendererRef = useRef<DroneRenderer>(new DroneRenderer());
+  const planarRendererRef = useRef<PlanarRenderer>(new PlanarRenderer());
   const lastFrameTimeRef = useRef<number>(performance.now());
 
   useEffect(() => {
@@ -151,6 +153,10 @@ export default function GameCanvas({
     if (worldEvents && worldEventRenderer) {
       worldEventRenderer.render(ctx, worldEvents, camera);
     }
+
+    // Render planar anchors and remnants
+    planarRendererRef.current.renderAnchors(ctx, gameState.planarAnchors, camera);
+    planarRendererRef.current.renderRemnants(ctx, gameState.planarRemnants, camera);
 
     const activeWeapon = gameState.player.equippedWeapons[gameState.player.activeWeaponIndex];
     if (activeWeapon?.firingMode === 'beam' && activeWeapon.isBeaming && !activeWeapon.beamOverheated) {

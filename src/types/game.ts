@@ -415,6 +415,31 @@ export interface WorldEvent {
   data: any;
 }
 
+export interface PlanarRemnant {
+  id: string;
+  position: Vector2;
+  weapons: any[];
+  drones: any[];
+  consumables: any[];
+  resources: Record<string, number>;
+  currency: number;
+  size: number;
+  rotation: number;
+  pulsePhase: number;
+}
+
+export interface PlanarAnchor {
+  id: string;
+  position: Vector2;
+  size: number;
+  isActivated: boolean;
+  isSetAsRespawn: boolean;
+  type: 'base_camp' | 'field';
+  rotation: number;
+  pulsePhase: number;
+  glowIntensity: number;
+}
+
 export interface GameState {
   player: Player;
   remotePlayers: RemotePlayer[];
@@ -435,4 +460,7 @@ export interface GameState {
   pvpEnabled: boolean;
   worldEvents?: WorldEvent[];
   recentEventSpawns?: WorldEvent[];
+  planarRemnants: PlanarRemnant[];
+  planarAnchors: PlanarAnchor[];
+  activeRespawnAnchor?: string;
 }
