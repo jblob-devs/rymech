@@ -3,7 +3,7 @@ import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
 import { GameEngine } from './game/GameEngine';
 import { GameState, Weapon } from './types/game';
-import { X, Archive, ShoppingCart, FlaskConical, Users, Cpu } from 'lucide-react';
+import { X, Archive, ShoppingCart, FlaskConical, Users, Cpu, Save } from 'lucide-react';
 import Minimap from './components/Minimap';
 import CraftingMenu from './components/CraftingMenu';
 import TouchControls from './components/TouchControls';
@@ -11,6 +11,7 @@ import ConnectionMenu from './components/ConnectionMenu';
 import { MultiplayerManager } from './game/MultiplayerManager';
 import { DRONE_DEFINITIONS } from './game/DroneSystem';
 import { DroneAbilities } from './components/DroneAbilities';
+import { SaveMenu } from './components/SaveMenu';
 
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -22,6 +23,7 @@ function App() {
   const [isCraftingOpen, setCraftingOpen] = useState(false);
   const [isAdminOpen, setAdminOpen] = useState(false);
   const [isAdminMode, setAdminMode] = useState(false);
+  const [isSaveMenuOpen, setSaveMenuOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [touchControlsVisible, setTouchControlsVisible] = useState(false);
   const touchMoveRef = useRef({ x: 0, y: 0 });
@@ -386,6 +388,15 @@ function App() {
                     </div>
                     {isAdminMode && <span className="text-xs bg-green-700 px-2 py-1 rounded">ACTIVE</span>}
                 </button>
+                <button
+                    onClick={() => setSaveMenuOpen(true)}
+                    className="flex items-center justify-between w-full px-3 py-2 bg-slate-800/50 hover:bg-slate-700/70 rounded-md text-sm font-semibold transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <Save className="w-4 h-4 text-cyan-300" />
+                        <span>SAVE</span>
+                    </div>
+                </button>
             </div>
         </div>
       </div>
@@ -678,6 +689,13 @@ function App() {
         pvpEnabled={gameState.pvpEnabled}
         onTogglePvP={() => gameEngineRef.current?.togglePvP()}
       />
+
+      {isSaveMenuOpen && (
+        <SaveMenu
+          gameEngine={gameEngineRef.current}
+          onClose={() => setSaveMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }

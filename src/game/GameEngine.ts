@@ -64,6 +64,7 @@ import type { MinibossSubtype } from '../types/game';
 import { DroneSystem } from './DroneSystem';
 import { WorldEventSystem } from './WorldEventSystem';
 import { WorldEventRenderer } from './WorldEventRenderer';
+import { SaveSystem, SaveData } from './SaveSystem';
 
 export class GameEngine {
   private gameState: GameState;
@@ -105,6 +106,8 @@ export class GameEngine {
   private recentEnemyDeaths: Array<{ x: number; y: number; timestamp: number }> = [];
   private worldEventSystem: WorldEventSystem;
   private worldEventRenderer: WorldEventRenderer;
+  private saveSystem: SaveSystem;
+  private currentHarvestingAsteroidId: string | null = null;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -125,24 +128,37 @@ export class GameEngine {
     this.droneSystem = new DroneSystem();
     this.worldEventSystem = new WorldEventSystem();
     this.worldEventRenderer = new WorldEventRenderer();
+    this.saveSystem = new SaveSystem();
     this.gameState = this.createInitialState();
     this.biomeManager.setWorldGenerator(this.worldGenerator);
-
-    INITIAL_WEAPONS.forEach(weapon => {
-      const weaponWithPerks = { ...weapon, perks: [] };
-      this.inventory.addWeapon(weaponWithPerks);
-      this.inventory.equipWeapon(weaponWithPerks.id);
-    });
-    this.syncEquippedWeapons();
     
-    this.inventory.addDrone('assault_drone');
-    this.inventory.addDrone('shield_drone');
-    this.inventory.addDrone('repair_drone');
-    this.inventory.equipDrone('assault_drone');
-    this.inventory.equipDrone('shield_drone');
-    this.syncDrones();
+    // Try to load save data first
+    const saveData = this.saveSystem.load();
+    if (saveData) {
+      this.loadSaveData(saveData);
+    } else {
+      // Only add initial weapons if no save data
+      INITIAL_WEAPONS.forEach(weapon => {
+        const weaponWithPerks = { ...weapon, perks: [] };
+        this.inventory.addWeapon(weaponWithPerks);
+        this.inventory.equipWeapon(weaponWithPerks.id);
+      });
+      this.syncEquippedWeapons();
+      
+      this.inventory.addDrone('assault_drone');
+      this.inventory.addDrone('shield_drone');
+      this.inventory.addDrone('repair_drone');
+      this.inventory.equipDrone('assault_drone');
+      this.inventory.equipDrone('shield_drone');
+      this.syncDrones();
+    }
 
     this.loadChunksAroundPlayer();
+    
+    // Start auto-save (save every 30 seconds)
+    this.saveSystem.startAutoSave(() => {
+      this.saveGame();
+    }, 30000);
   }
 
   private createInitialState(): GameState {
@@ -3679,6 +3695,81 @@ export class GameEngine {
   deleteDrone(droneType: import('../types/game').DroneType): void {
     this.inventory.removeDrone(droneType);
     this.syncDrones();
+  }
+
+  saveGame(): boolean {
+    const equippedWeaponIds = this.inventory.getEquippedWeapons().map(w => w.id);
+    const equippedDroneTypes = this.inventory.getEquippedDrones().map(d => d);
+    
+    return this.saveSystem.save(
+      this.inventory,
+      this.gameState.player.resources,
+      this.gameState.player.currency,
+      equippedWeaponIds,
+      equippedDroneTypes
+    );
+  }
+
+  private loadSaveData(saveData: SaveData): void {
+    // Restore resources and currency
+    this.gameState.player.resources = { ...saveData.resources };
+    this.gameState.player.currency = saveData.currency;
+
+    // Clear current inventory
+    this.inventory = new PlayerInventory();
+
+    // Restore weapons
+    saveData.inventory.weapons.forEach(({ weapon, equipped }) => {
+      this.inventory.addWeapon(weapon);
+      if (equipped) {
+        this.inventory.equipWeapon(weapon.id);
+      }
+    });
+    this.syncEquippedWeapons();
+
+    // Restore drones
+    saveData.inventory.drones.forEach(({ droneType, equipped }) => {
+      this.inventory.addDrone(droneType);
+      if (equipped) {
+        this.inventory.equipDrone(droneType);
+      }
+    });
+    this.syncDrones();
+
+    // Restore consumables
+    saveData.inventory.consumables.forEach(consumable => {
+      this.inventory.addConsumable(consumable);
+    });
+
+    console.log('[GameEngine] Save data loaded successfully');
+  }
+
+  exportSaveToFile(): void {
+    this.saveSystem.exportToFile();
+  }
+
+  async importSaveFromFile(file: File): Promise<boolean> {
+    const success = await this.saveSystem.importFromFile(file);
+    if (success) {
+      const saveData = this.saveSystem.load();
+      if (saveData) {
+        this.loadSaveData(saveData);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  deleteSaveData(): boolean {
+    return this.saveSystem.deleteSave();
+  }
+
+  hasSaveData(): boolean {
+    return this.saveSystem.hasSaveData();
+  }
+
+  getSaveSystem(): SaveSystem {
+    return this.saveSystem;
   }
 
   private syncEquippedWeapons(): void {

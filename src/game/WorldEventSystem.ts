@@ -1,5 +1,7 @@
-import { Vector2, Enemy, ResourceType } from '../types/game';
-import { createVector, vectorAdd, vectorDistance, vectorNormalize, vectorScale, vectorSubtract, randomRange, generateId } from './utils';
+import { Vector2 } from '../types/game';
+import { vectorAdd, vectorDistance, randomRange, generateId } from './utils';
+
+export type ResourceType = 'energy' | 'coreDust' | 'flux' | 'geoShards' | 'alloyFragments' | 'singularityCore' | 'voidCore' | 'cryoKelp' | 'obsidianHeart' | 'gloomRoot' | 'resonantCrystal' | 'voidEssence' | 'bioluminescentPearl' | 'sunpetalBloom' | 'aetheriumShard' | 'gravitonEssence' | 'crateKey';
 
 // Event Types
 export type WorldEventType =
@@ -62,6 +64,13 @@ export interface ResourceAsteroidData {
   harvestable: boolean;
   harvested: boolean;
   size: number;
+  harvestProgress: number;
+  harvestTime: number;
+  isBeingHarvested: boolean;
+  enemySpawnTimer: number;
+  enemiesSpawned: number;
+  maxEnemySpawns: number;
+  craterRadius: number;
 }
 
 // Enemy Ambush Event
@@ -346,21 +355,29 @@ export class WorldEventSystem {
   private createResourceAsteroidEvent(id: string, position: Vector2): WorldEvent {
     const resourceTypes: ResourceType[] = ['energy', 'coreDust', 'flux', 'singularityCore', 'voidCore'];
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+    const size = randomRange(30, 50);
     
     return {
       id,
       type: 'resource_asteroid',
       position,
-      radius: 40,
-      lifetime: 90,
-      maxLifetime: 90,
+      radius: 60,
+      lifetime: 180,
+      maxLifetime: 180,
       isActive: true,
       data: {
         resourceType,
         resourceAmount: randomRange(30, 100),
         harvestable: true,
         harvested: false,
-        size: randomRange(30, 50),
+        size,
+        harvestProgress: 0,
+        harvestTime: 5.0, // Takes 5 seconds to harvest
+        isBeingHarvested: false,
+        enemySpawnTimer: 0,
+        enemiesSpawned: 0,
+        maxEnemySpawns: 3,
+        craterRadius: size * 1.5,
       } as ResourceAsteroidData,
     };
   }
@@ -552,6 +569,90 @@ export class WorldEventSystem {
       
       this.events.set(event.id, event);
     });
+  }
+
+  getHarvestableAsteroidNear(position: Vector2, maxDistance: number = 80): WorldEvent | null {
+    for (const event of this.events.values()) {
+      if (event.type === 'resource_asteroid') {
+        const data = event.data as ResourceAsteroidData;
+        const distance = vectorDistance(event.position, position);
+        
+        if (distance <= maxDistance && data.harvestable && !data.harvested) {
+          return event;
+        }
+      }
+    }
+    return null;
+  }
+
+  startHarvestingAsteroid(eventId: string): boolean {
+    const event = this.events.get(eventId);
+    if (!event || event.type !== 'resource_asteroid') return false;
+    
+    const data = event.data as ResourceAsteroidData;
+    if (!data.harvestable || data.harvested) return false;
+    
+    data.isBeingHarvested = true;
+    return true;
+  }
+
+  stopHarvestingAsteroid(eventId: string): void {
+    const event = this.events.get(eventId);
+    if (!event || event.type !== 'resource_asteroid') return;
+    
+    const data = event.data as ResourceAsteroidData;
+    data.isBeingHarvested = false;
+  }
+
+  updateAsteroidHarvest(
+    eventId: string, 
+    dt: number, 
+    onEnemySpawn: (position: Vector2) => void,
+    onHarvestComplete: (resourceType: ResourceType, amount: number) => void
+  ): void {
+    const event = this.events.get(eventId);
+    if (!event || event.type !== 'resource_asteroid') return;
+    
+    const data = event.data as ResourceAsteroidData;
+    
+    if (!data.isBeingHarvested || data.harvested) return;
+    
+    // Update harvest progress
+    data.harvestProgress += dt;
+    
+    // Spawn enemies periodically during harvest
+    data.enemySpawnTimer += dt;
+    const spawnInterval = data.harvestTime / data.maxEnemySpawns;
+    
+    if (data.enemySpawnTimer >= spawnInterval && data.enemiesSpawned < data.maxEnemySpawns) {
+      data.enemySpawnTimer = 0;
+      data.enemiesSpawned++;
+      
+      // Spawn enemy near asteroid
+      const angle = Math.random() * Math.PI * 2;
+      const spawnDistance = 100 + Math.random() * 50;
+      const spawnPos = vectorAdd(
+        event.position,
+        vectorFromAngle(angle, spawnDistance)
+      );
+      onEnemySpawn(spawnPos);
+    }
+    
+    // Check if harvest is complete
+    if (data.harvestProgress >= data.harvestTime) {
+      data.harvested = true;
+      data.isBeingHarvested = false;
+      onHarvestComplete(data.resourceType, data.resourceAmount);
+    }
+  }
+
+  stopAllHarvesting(): void {
+    for (const event of this.events.values()) {
+      if (event.type === 'resource_asteroid') {
+        const data = event.data as ResourceAsteroidData;
+        data.isBeingHarvested = false;
+      }
+    }
   }
 }
 
