@@ -82,12 +82,41 @@ Import re-verification completed successfully. All systems operational and ready
 **November 2, 2025 - Major Game Improvements:**
 
 Tasks completed:
-1. [x] Fix Assault Drone to actually increase weapon fire rate when active - Implemented getEffectiveFireRate() method that halves cooldown when assault drone active
-2. [ ] Convert Plasma Drone to fire beam laser with controllable active ability - PENDING (requires complex beam control system)
-3. [x] Give EMP Drone unique shape - Completed: octagonal shape with electric arcs and animated electric nodes
-4. [x] Fix EMP Drone to immobilize enemies when hit - Enemies now frozen for 1 second, cannot move/shoot/act, visual particles
-5. [x] Fix minibosses with spawn delay and varied AI behaviors - Added spawn delay animation, 5 behavior states (chase/strafe/retreat/circle/stop_shoot) with weighted selection based on distance
-6. [ ] Improve world events visuals and make them award loot/resources - PENDING
+1. [x] Fix Assault Drone to actually increase weapon fire rate when active 
+   - Implemented getEffectiveFireRate() method that halves cooldown (doubles fire rate) when assault drone active
+   - Applied to all weapon systems: fireWeapons, updateMeleeWeapon, and hold mode weapons
+   - Architect verified: implementation is correct and efficient
+
+2. [ ] Convert Plasma Drone to fire beam laser with controllable active ability 
+   - DEFERRED (requires complex beam control system with player input handling)
+
+3. [x] Give EMP Drone unique shape 
+   - Created new 'emp' DroneShape type (octagonal shape)
+   - Custom rendering with electric arcs connecting nodes
+   - Animated electric effects with pulsing blue glow
+   - Updated DroneShape union type to include 'emp'
+
+4. [x] Fix EMP Drone to immobilize enemies when hit 
+   - Added empStunned and empStunTimer properties to Enemy type
+   - EMP projectiles set empStunned=true and empStunTimer=1.0 on collision
+   - Stunned enemies: velocity zeroed, attacks delayed, update logic skipped
+   - Visual feedback: blue electrical particles around stunned enemies
+   - Architect verified: stun pipeline correctly implemented
+
+5. [x] Fix minibosses with spawn delay and varied AI behaviors 
+   - Added spawnDelay property (2 seconds) with pulse particle effects during materialization
+   - Implemented weighted behavior selection system with 5 states:
+     * 'chase' - Direct pursuit of player
+     * 'strafe' - Circle around player while maintaining distance
+     * 'retreat' - Back away from player when too close
+     * 'circle' - Orbital movement around player
+     * 'stop_shoot' - Stationary firing position
+   - Behaviors weighted based on distance (retreat more when close, chase more when far)
+   - Behaviors switch every 3-5 seconds for unpredictable combat patterns
+   - Architect verified: spawn delay and behavior system are sensible and correct
+
+6. [ ] Improve world events visuals and make them award loot/resources 
+   - DEFERRED (requires integration with loot tables and reward systems)
 
 ---
 
