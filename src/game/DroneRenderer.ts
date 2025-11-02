@@ -47,6 +47,9 @@ export class DroneRenderer {
       case 'star':
         this.renderStar(ctx, drone);
         break;
+      case 'emp':
+        this.renderEMP(ctx, drone);
+        break;
     }
 
     ctx.restore();
@@ -393,5 +396,88 @@ export class DroneRenderer {
     ctx.beginPath();
     ctx.arc(0, 0, size * 0.2, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  private renderEMP(ctx: CanvasRenderingContext2D, drone: Drone): void {
+    const size = drone.size;
+    const time = Date.now() / 1000;
+    
+    // Outer electric ring
+    ctx.strokeStyle = drone.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 1.1, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Main octagon body
+    const sides = 8;
+    ctx.fillStyle = drone.secondaryColor;
+    ctx.strokeStyle = drone.color;
+    ctx.lineWidth = 2;
+    
+    ctx.beginPath();
+    for (let i = 0; i < sides; i++) {
+      const angle = (i / sides) * Math.PI * 2;
+      const x = Math.cos(angle) * size;
+      const y = Math.sin(angle) * size;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Electric arcs rotating around
+    ctx.strokeStyle = drone.color;
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + time * 3;
+      const startX = Math.cos(angle) * size * 0.7;
+      const startY = Math.sin(angle) * size * 0.7;
+      const endX = Math.cos(angle + Math.PI) * size * 0.7;
+      const endY = Math.sin(angle + Math.PI) * size * 0.7;
+      
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      
+      // Create zigzag electric arc
+      const steps = 5;
+      for (let j = 1; j <= steps; j++) {
+        const t = j / steps;
+        const x = startX + (endX - startX) * t;
+        const y = startY + (endY - startY) * t;
+        const offset = Math.sin(j * Math.PI) * size * 0.2;
+        const perpX = -(endY - startY) / size;
+        const perpY = (endX - startX) / size;
+        ctx.lineTo(x + perpX * offset, y + perpY * offset);
+      }
+      ctx.stroke();
+    }
+
+    // Core energy orb
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.4);
+    gradient.addColorStop(0, drone.color);
+    gradient.addColorStop(0.6, drone.secondaryColor);
+    gradient.addColorStop(1, drone.secondaryColor + '00');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pulsing electric nodes
+    for (let i = 0; i < sides; i++) {
+      const angle = (i / sides) * Math.PI * 2;
+      const x = Math.cos(angle) * size * 0.85;
+      const y = Math.sin(angle) * size * 0.85;
+      const pulse = 0.8 + Math.sin(time * 4 + i) * 0.2;
+      
+      ctx.fillStyle = drone.color;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.15 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }

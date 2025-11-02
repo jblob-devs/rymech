@@ -124,7 +124,7 @@ export interface Drone extends Entity {
   targetId?: string;
   color: string;
   secondaryColor: string;
-  shape: 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star';
+  shape: 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star' | 'emp';
   detectionRadius: number;
   aiState?: 'hovering' | 'orbiting' | 'spinning';
   aiTimer?: number;
@@ -133,6 +133,8 @@ export interface Drone extends Entity {
   activeEffectTimer: number;
   isActiveEffectActive?: boolean;
   activeEffectRemainingTime?: number;
+  beamAngle?: number;
+  beamWidth?: number;
 }
 
 export interface Enemy extends Entity {
@@ -182,6 +184,10 @@ export interface Enemy extends Entity {
   whirlpoolAngle?: number;
   jaws?: { isOpen: boolean; biteTimer: number; grabbedPlayerId?: string };
   segments?: Array<{ position: Vector2; rotation: number; size: number }>;
+  empStunned?: boolean;
+  empStunTimer?: number;
+  behaviorTimer?: number;
+  spawnDelay?: number;
 }
 
 export interface Projectile extends Entity {
@@ -227,6 +233,8 @@ export interface Projectile extends Entity {
   chainLightningTarget?: Vector2;
   killStreak?: number;
   killStreakTimer?: number;
+  droneType?: string;
+  isEMP?: boolean;
 }
 
 export interface Particle extends Entity {

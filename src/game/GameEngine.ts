@@ -831,7 +831,7 @@ export class GameEngine {
           weapon.isHolding = false;
           if ((weapon.holdTimer || 0) >= (weapon.holdTime || 0.8)) {
             this.fireWeapon(weapon);
-            weapon.cooldown = weapon.fireRate;
+            weapon.cooldown = this.getEffectiveFireRate(weapon.fireRate);
           }
           weapon.holdTimer = 0;
         }
@@ -878,13 +878,24 @@ export class GameEngine {
       if (shouldFire && weapon.cooldown <= 0) {
         if (weapon.type === 'grappling_hook') {
           this.fireGrapplingHook();
-          weapon.cooldown = weapon.grapplingStats?.cooldown || weapon.fireRate;
+          weapon.cooldown = this.getEffectiveFireRate(weapon.grapplingStats?.cooldown || weapon.fireRate);
         } else {
           this.fireWeapon(weapon);
-          weapon.cooldown = weapon.fireRate;
+          weapon.cooldown = this.getEffectiveFireRate(weapon.fireRate);
         }
       }
     });
+  }
+
+  private getEffectiveFireRate(baseFireRate: number): number {
+    const assaultDrone = this.gameState.drones.find(
+      drone => drone.droneType === 'assault_drone' && drone.isActiveEffectActive
+    );
+    
+    if (assaultDrone) {
+      return baseFireRate * 0.5;
+    }
+    return baseFireRate;
   }
 
   private updateMeleeWeapon(weapon: Weapon, dt: number, index: number): void {
@@ -913,7 +924,7 @@ export class GameEngine {
 
     if ((mousePressed || arrowPressed || touchPressed) && index === player.activeWeaponIndex && weapon.cooldown <= 0 && !weapon.isSwinging) {
       this.fireMeleeWeapon(weapon);
-      weapon.cooldown = weapon.fireRate;
+      weapon.cooldown = this.getEffectiveFireRate(weapon.fireRate);
     }
   }
 
@@ -1384,6 +1395,19 @@ export class GameEngine {
 
     this.gameState.enemies.forEach((enemy) => {
       if (enemy.health <= 0) return;
+
+      if (enemy.empStunned && enemy.empStunTimer !== undefined) {
+        enemy.empStunTimer -= dt;
+        if (enemy.empStunTimer <= 0) {
+          enemy.empStunned = false;
+          enemy.empStunTimer = 0;
+        } else {
+          enemy.velocity = createVector(0, 0);
+          enemy.attackCooldown = Math.max(enemy.attackCooldown, 0.1);
+          this.createParticles(enemy.position, 2, '#eab308', 0.2);
+          return;
+        }
+      }
 
       const targetPlayer = this.findNearestPlayer(enemy.position);
       const dirToPlayer = vectorSubtract(targetPlayer.position, enemy.position);
@@ -2120,11 +2144,12 @@ export class GameEngine {
     );
 
     if (spawnedMiniboss) {
+      spawnedMiniboss.spawnDelay = 2.0;
       this.gameState.enemies.push(spawnedMiniboss);
       this.createParticles(spawnedMiniboss.position, 80, spawnedMiniboss.color, 1.2);
       
       const name = this.minibossLootSystem.getMinibossDisplayName(spawnedMiniboss.minibossSubtype!);
-      console.log(`Miniboss spawned: ${name}`);
+      console.log(`Miniboss spawned: ${name} (materializing...)`);
     }
   }
 
@@ -2528,10 +2553,11 @@ export class GameEngine {
                 }
               }
 
-              if ((projectile as any).droneType === 'emp_drone') {
-                enemy.isStunned = true;
-                enemy.stunnedEndTime = Date.now() + 1000;
+              if (projectile.isEMP || (projectile as any).droneType === 'emp_drone') {
+                enemy.empStunned = true;
+                enemy.empStunTimer = 1.0;
                 this.createParticles(enemy.position, 15, '#fde047', 0.6);
+                this.createParticles(enemy.position, 10, '#eab308', 0.4);
               }
 
               if ((projectile as any).droneType === 'explosive_drone' && projectile.explosive) {

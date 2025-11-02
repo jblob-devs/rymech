@@ -1,7 +1,7 @@
 import { Drone, DroneType, Vector2, Enemy, Projectile } from '../types/game';
 import { generateId, vectorDistance, vectorNormalize, vectorSubtract, vectorScale, vectorAdd } from './utils';
 
-export type DroneShape = 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star';
+export type DroneShape = 'circle' | 'triangle' | 'square' | 'hexagon' | 'diamond' | 'cross' | 'star' | 'emp';
 
 export interface DroneDefinition {
   type: DroneType;
@@ -207,7 +207,7 @@ export const DRONE_DEFINITIONS: Record<DroneType, DroneDefinition> = {
     orbitRadius: 92,
     orbitSpeed: 2.1,
     size: 7,
-    shape: 'cross',
+    shape: 'emp',
     color: '#eab308',
     secondaryColor: '#ca8a04',
     detectionRadius: 310,
@@ -591,6 +591,10 @@ export class DroneSystem {
     if (drone.droneType === 'plasma_drone') {
       projectile.piercing = true;
       projectile.piercingCount = 999;
+    }
+
+    if (drone.droneType === 'emp_drone') {
+      projectile.isEMP = true;
     }
 
     createProjectile(projectile);

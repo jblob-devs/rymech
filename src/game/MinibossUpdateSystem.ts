@@ -49,6 +49,14 @@ export class MinibossUpdateSystem {
   ): void {
     if (!miniboss.minibossSubtype) return;
 
+    if (miniboss.spawnDelay !== undefined && miniboss.spawnDelay > 0) {
+      miniboss.spawnDelay -= dt;
+      miniboss.velocity = createVector(0, 0);
+      const pulseScale = 1 + Math.sin(miniboss.spawnDelay * 8) * 0.2;
+      context.createParticles(miniboss.position, 3, miniboss.color, 0.3);
+      return;
+    }
+
     const distance = vectorDistance(miniboss.position, playerPos);
 
     if (miniboss.minibossSubtype === 'angulodon') {
@@ -81,6 +89,26 @@ export class MinibossUpdateSystem {
       const tooCloseRange = optimalRange * 0.5;
       const tooFarRange = optimalRange * 1.5;
       
+      if (!miniboss.behaviorState || miniboss.behaviorTimer > 3 + Math.random() * 2) {
+        const behaviors = ['chase', 'strafe', 'retreat', 'circle', 'stop_shoot'];
+        const weights = distance < tooCloseRange 
+          ? [0.2, 0.2, 0.4, 0.1, 0.1]
+          : distance > tooFarRange 
+            ? [0.6, 0.1, 0.0, 0.2, 0.1]
+            : [0.3, 0.2, 0.1, 0.3, 0.1];
+        
+        let rand = Math.random();
+        let cumulative = 0;
+        for (let i = 0; i < behaviors.length; i++) {
+          cumulative += weights[i];
+          if (rand <= cumulative) {
+            miniboss.behaviorState = behaviors[i];
+            break;
+          }
+        }
+        miniboss.behaviorTimer = 0;
+      }
+      
       let targetVelocity: Vector2;
       
       if (miniboss.telegraphTimer && miniboss.telegraphTimer > 0) {
@@ -88,26 +116,34 @@ export class MinibossUpdateSystem {
         const dir = vectorSubtract(playerPos, miniboss.position);
         const normalized = vectorNormalize(dir);
         targetVelocity = vectorScale(normalized, miniboss.speed * slowFactor);
-      } else if (distance < tooCloseRange) {
+      } else if (miniboss.behaviorState === 'retreat') {
         const retreatDir = vectorSubtract(miniboss.position, playerPos);
         const normalized = vectorNormalize(retreatDir);
-        const angle = Math.atan2(normalized.y, normalized.x) + (Math.sin(miniboss.behaviorTimer * 2) * 0.5);
+        const angle = Math.atan2(normalized.y, normalized.x) + (Math.sin(miniboss.behaviorTimer * 2) * 0.3);
         targetVelocity = {
-          x: Math.cos(angle) * miniboss.speed * 0.8,
-          y: Math.sin(angle) * miniboss.speed * 0.8
+          x: Math.cos(angle) * miniboss.speed * 1.1,
+          y: Math.sin(angle) * miniboss.speed * 1.1
         };
-      } else if (distance > tooFarRange) {
+      } else if (miniboss.behaviorState === 'stop_shoot' && distance > 100) {
+        targetVelocity = vectorScale(miniboss.velocity, 0.7);
+      } else if (miniboss.behaviorState === 'strafe') {
         const dir = vectorSubtract(playerPos, miniboss.position);
-        const normalized = vectorNormalize(dir);
-        targetVelocity = vectorScale(normalized, miniboss.speed * 1.2);
-      } else {
+        const perpendicular = { x: -dir.y / distance, y: dir.x / distance };
+        const strafeDir = Math.sin(miniboss.behaviorTimer * 4) > 0 ? 1 : -1;
+        targetVelocity = vectorScale(perpendicular, miniboss.speed * 0.9 * strafeDir);
+      } else if (miniboss.behaviorState === 'circle') {
         const dir = vectorSubtract(playerPos, miniboss.position);
-        const angle = Math.atan2(dir.y, dir.x) + (Math.PI / 2) * Math.sin(miniboss.behaviorTimer);
-        const circleRadius = 0.7;
+        const angle = Math.atan2(dir.y, dir.x) + (Math.PI / 2) * Math.sin(miniboss.behaviorTimer * 1.5);
+        const circleRadius = 0.8;
         targetVelocity = {
           x: (Math.cos(angle) * circleRadius + dir.x / distance * (1 - circleRadius)) * miniboss.speed,
           y: (Math.sin(angle) * circleRadius + dir.y / distance * (1 - circleRadius)) * miniboss.speed
         };
+      } else {
+        const dir = vectorSubtract(playerPos, miniboss.position);
+        const normalized = vectorNormalize(dir);
+        const chaseSpeed = distance > tooFarRange ? 1.3 : distance < tooCloseRange ? 0.7 : 1.0;
+        targetVelocity = vectorScale(normalized, miniboss.speed * chaseSpeed);
       }
       
       miniboss.velocity = vectorAdd(
