@@ -1,4 +1,4 @@
-import { PlanarAnchor, PlanarRemnant, Vector2 } from '../types/game';
+import { PlanarAnchor, PlanarRemnant, Vector2, BaseCampElement } from '../types/game';
 import { PlayerInventory } from './PlayerInventory';
 import { generateId, createVector } from './utils';
 
@@ -9,16 +9,50 @@ export class PlanarAnchorSystem {
   private baseCampAnchorId: string | null = null;
 
   createBaseCampAnchor(position: Vector2): PlanarAnchor {
+    const baseCampElements: BaseCampElement[] = [
+      {
+        id: generateId(),
+        position: { x: position.x, y: position.y },
+        type: 'campfire',
+        interactionRange: 80,
+        pulsePhase: 0,
+      },
+      {
+        id: generateId(),
+        position: { x: position.x + 90, y: position.y - 30 },
+        type: 'vault_node',
+        interactionRange: 60,
+        pulsePhase: 0,
+      },
+      {
+        id: generateId(),
+        position: { x: position.x - 90, y: position.y + 40 },
+        type: 'info_sign',
+        interactionRange: 50,
+        rotation: 0,
+        text: 'HOW TO PLAY',
+      },
+      {
+        id: generateId(),
+        position: { x: position.x + 80, y: position.y + 60 },
+        type: 'info_sign',
+        interactionRange: 50,
+        rotation: 0,
+        text: 'LORE: THE SHATTERED EXPANSE',
+      },
+    ];
+
     const anchor: PlanarAnchor = {
       id: generateId(),
       position,
-      size: 40,
+      size: 120,
       isActivated: true,
       isSetAsRespawn: true,
       type: 'base_camp',
       rotation: 0,
       pulsePhase: 0,
       glowIntensity: 1,
+      baseCampElements,
     };
     this.anchors.set(anchor.id, anchor);
     this.activeRespawnAnchorId = anchor.id;
@@ -177,6 +211,17 @@ export class PlanarAnchorSystem {
     this.anchors.forEach(anchor => {
       anchor.pulsePhase += dt * 2;
       anchor.rotation += dt * 0.5;
+      
+      if (anchor.baseCampElements) {
+        anchor.baseCampElements.forEach(element => {
+          if (element.pulsePhase !== undefined) {
+            element.pulsePhase += dt * 2;
+          }
+          if (element.type === 'campfire') {
+            element.rotation = (element.rotation || 0) + dt * 3;
+          }
+        });
+      }
     });
 
     this.remnants.forEach(remnant => {

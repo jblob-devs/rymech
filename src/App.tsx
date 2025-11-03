@@ -338,6 +338,7 @@ function App() {
           chests={gameEngineRef.current.getChests()}
           extractionPoints={gameEngineRef.current.getExtractionPoints()}
           portals={gameEngineRef.current.getPortals()}
+          planarAnchors={gameState.planarAnchors || []}
         />
         <div className="bg-slate-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 shadow-lg w-64">
             <h2 className="text-xs font-bold text-slate-300 mb-2">SYSTEMS</h2>

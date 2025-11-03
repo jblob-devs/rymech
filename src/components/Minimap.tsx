@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GameState, Chest } from '../types/game';
+import { GameState, Chest, PlanarAnchor } from '../types/game';
 import { ExtractionPoint, Portal } from '../game/WorldGeneration';
 
 interface MinimapProps {
@@ -7,13 +7,14 @@ interface MinimapProps {
   chests: Chest[];
   extractionPoints: ExtractionPoint[];
   portals: Portal[];
+  planarAnchors: PlanarAnchor[];
 }
 
 const MINIMAP_SIZE = 200;
 const MINIMAP_SCALE = 10; // 1 pixel on map = 10 game units
 const BLIP_SIZE = 3;
 
-export default function Minimap({ gameState, chests, extractionPoints, portals }: MinimapProps) {
+export default function Minimap({ gameState, chests, extractionPoints, portals, planarAnchors }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { player, enemies, worldEvents } = gameState;
 
@@ -80,6 +81,61 @@ export default function Minimap({ gameState, chests, extractionPoints, portals }
     // Draw portals
     portals.forEach(portal => drawBlip(portal.position, '#a855f7', BLIP_SIZE + 2));
 
+    // Draw planar anchors with prominence
+    planarAnchors.forEach(anchor => {
+      const mapX = (anchor.position.x - player.position.x) / MINIMAP_SCALE;
+      const mapY = (anchor.position.y - player.position.y) / MINIMAP_SCALE;
+      const distance = Math.sqrt(mapX * mapX + mapY * mapY);
+
+      // Only show if within minimap bounds
+      if (distance < mapCenterX - 10) {
+        const color = anchor.type === 'base_camp' ? '#4ADE80' : '#60A5FA';
+        const isRespawn = anchor.isSetAsRespawn;
+        
+        // Draw glow
+        ctx.fillStyle = `${color}40`;
+        ctx.beginPath();
+        ctx.arc(mapX, mapY, BLIP_SIZE + 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw anchor icon
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        
+        if (anchor.type === 'base_camp') {
+          // Draw hexagon for base camp
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x = mapX + Math.cos(angle) * (BLIP_SIZE + 1);
+            const y = mapY + Math.sin(angle) * (BLIP_SIZE + 1);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        } else {
+          // Draw diamond for field anchor
+          ctx.beginPath();
+          ctx.moveTo(mapX, mapY - (BLIP_SIZE + 1));
+          ctx.lineTo(mapX + (BLIP_SIZE + 1), mapY);
+          ctx.lineTo(mapX, mapY + (BLIP_SIZE + 1));
+          ctx.lineTo(mapX - (BLIP_SIZE + 1), mapY);
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        // Draw respawn indicator
+        if (isRespawn) {
+          ctx.fillStyle = '#FDE047';
+          ctx.beginPath();
+          ctx.arc(mapX, mapY, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    });
+
     // Draw world events with special indicators
     if (worldEvents) {
       worldEvents.forEach(event => {
@@ -133,7 +189,7 @@ export default function Minimap({ gameState, chests, extractionPoints, portals }
     ctx.closePath();
     ctx.fill();
 
-  }, [gameState, chests, extractionPoints, portals, player.position, worldEvents]);
+  }, [gameState, chests, extractionPoints, portals, planarAnchors, player.position, worldEvents]);
 
   return (
     <div className="bg-slate-900/80 backdrop-blur-sm border-2 border-cyan-500/30 rounded-full shadow-lg w-[200px] h-[200px] overflow-hidden relative">

@@ -428,6 +428,16 @@ export interface PlanarRemnant {
   pulsePhase: number;
 }
 
+export interface BaseCampElement {
+  id: string;
+  position: Vector2;
+  type: 'campfire' | 'vault_node' | 'info_sign';
+  interactionRange: number;
+  rotation?: number;
+  pulsePhase?: number;
+  text?: string;
+}
+
 export interface PlanarAnchor {
   id: string;
   position: Vector2;
@@ -438,6 +448,7 @@ export interface PlanarAnchor {
   rotation: number;
   pulsePhase: number;
   glowIntensity: number;
+  baseCampElements?: BaseCampElement[];
 }
 
 export interface GameState {
