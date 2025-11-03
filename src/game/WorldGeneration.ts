@@ -20,6 +20,7 @@ export interface Chunk {
   extractionPoint?: ExtractionPoint;
   chests: Chest[];
   biomeFeatures: AnyBiomeFeature[];
+  fieldAnchors: Array<{ x: number; y: number }>;
 }
 
 export interface ResourceNode {
@@ -134,6 +135,7 @@ export class WorldGenerator {
     const portals = this.generatePortals(chunkX, chunkY, worldX, worldY, biome);
     const extractionPoint = this.generateExtractionPoint(chunkX, chunkY, worldX, worldY, biome);
     const chests = this.generateChests(chunkX, chunkY, worldX, worldY, biome);
+    const fieldAnchors = this.generateFieldAnchors(chunkX, chunkY, worldX, worldY);
 
     return {
       x: chunkX,
@@ -147,6 +149,7 @@ export class WorldGenerator {
       extractionPoint,
       chests,
       biomeFeatures,
+      fieldAnchors,
     };
   }
 
@@ -520,6 +523,21 @@ export class WorldGenerator {
       }
     }
     return portals;
+  }
+
+  private generateFieldAnchors(chunkX: number, chunkY: number, worldX: number, worldY: number): Array<{ x: number; y: number }> {
+    const anchors: Array<{ x: number; y: number }> = [];
+    const distanceFromOrigin = Math.sqrt(chunkX * chunkX + chunkY * chunkY);
+    
+    // Spawn field anchors with 15% chance in chunks that are at least 3 chunks away from origin
+    if (distanceFromOrigin > 3 && this.seededRandom(chunkX, chunkY, 95) < 0.15) {
+      const x = worldX + this.seededRandom(chunkX, chunkY, 96) * (CHUNK_SIZE - 300) + 150;
+      const y = worldY + this.seededRandom(chunkX, chunkY, 97) * (CHUNK_SIZE - 300) + 150;
+      
+      anchors.push({ x, y });
+    }
+    
+    return anchors;
   }
 
   private generateExtractionPoint(chunkX: number, chunkY: number, worldX: number, worldY: number, biome: BiomeConfig): ExtractionPoint | undefined {

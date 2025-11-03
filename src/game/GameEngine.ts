@@ -3095,6 +3095,21 @@ export class GameEngine {
       if (chunk.extractionPoint) {
         this.extractionPoints.push(chunk.extractionPoint);
       }
+      
+      // Add field anchors from chunk
+      chunk.fieldAnchors.forEach(anchorPos => {
+        // Check if this anchor already exists in the system
+        const existingAnchor = this.gameState.planarAnchors.find(a => 
+          a.type === 'field' && 
+          Math.abs(a.position.x - anchorPos.x) < 10 && 
+          Math.abs(a.position.y - anchorPos.y) < 10
+        );
+        
+        if (!existingAnchor) {
+          const newAnchor = this.planarAnchorSystem.createFieldAnchor({ x: anchorPos.x, y: anchorPos.y });
+          this.gameState.planarAnchors.push(newAnchor);
+        }
+      });
     });
 
     this.chests.push(...newChests);
