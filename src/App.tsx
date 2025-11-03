@@ -323,7 +323,7 @@ function App() {
         interactionText={
           gameEngineRef.current?.getActiveOminousTendril()?.canInteract
             ? 'Press [F] to Awaken the Void Subdivider'
-            : undefined
+            : gameEngineRef.current?.getActiveInteractable()?.text
         }
         onClearRecentEvents={() => {
           if (gameEngineRef.current) {

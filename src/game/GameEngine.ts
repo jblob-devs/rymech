@@ -100,6 +100,7 @@ export class GameEngine {
   private voidSubdivider: VoidSubdivider | null = null;
   private voidGapBossSpawned: Set<string> = new Set();
   private activeOminousTendril: { featureId: string; canInteract: boolean } | null = null;
+  private activeInteractable: { type: 'vault_node' | 'campfire' | 'field_anchor'; text: string; anchor?: PlanarAnchor } | null = null;
   private meleeWeaponRenderer: MeleeWeaponRenderer;
   private minibossSystem: MinibossSystem;
   private minibossSpawnManager: MinibossSpawnManager;
@@ -2865,6 +2866,10 @@ export class GameEngine {
     return this.activeOminousTendril;
   }
 
+  getActiveInteractable(): { type: 'vault_node' | 'campfire' | 'field_anchor'; text: string; anchor?: PlanarAnchor } | null {
+    return this.activeInteractable;
+  }
+
   private updateVoidSubdividerBoss(dt: number): void {
     if (!this.voidSubdivider) return;
 
@@ -3125,6 +3130,9 @@ export class GameEngine {
   private updateInteractables(dt: number): void {
     const player = this.gameState.player;
 
+    // Reset active interactable
+    this.activeInteractable = null;
+
     this.resourceNodes.forEach(node => {
       node.bobPhase += dt * 2;
       const distance = vectorDistance(player.position, node.position);
@@ -3175,13 +3183,24 @@ export class GameEngine {
       anchor.baseCampElements.forEach(element => {
         const distance = vectorDistance(player.position, element.position);
         
-        if (distance < (element.interactionRange || 60) && this.keys.has('f')) {
-          this.keys.delete('f'); // Prevent multiple triggers
+        // Show interaction text when nearby
+        if (distance < (element.interactionRange || 60)) {
+          if (!this.activeInteractable) {
+            if (element.type === 'vault_node') {
+              this.activeInteractable = { type: 'vault_node', text: 'Press [F] to Open Vault', anchor };
+            } else if (element.type === 'campfire') {
+              this.activeInteractable = { type: 'campfire', text: 'Press [F] to Access Campfire', anchor };
+            }
+          }
 
-          if (element.type === 'vault_node' && this.vaultInteractionCallback) {
-            this.vaultInteractionCallback();
-          } else if (element.type === 'campfire' && this.anchorInteractionCallback) {
-            this.anchorInteractionCallback(anchor);
+          if (this.keys.has('f')) {
+            this.keys.delete('f'); // Prevent multiple triggers
+
+            if (element.type === 'vault_node' && this.vaultInteractionCallback) {
+              this.vaultInteractionCallback();
+            } else if (element.type === 'campfire' && this.anchorInteractionCallback) {
+              this.anchorInteractionCallback(anchor);
+            }
           }
         }
       });
@@ -3191,10 +3210,24 @@ export class GameEngine {
     this.gameState.planarAnchors.forEach(anchor => {
       if (anchor.type === 'field' && !anchor.isActivated) {
         const distance = vectorDistance(player.position, anchor.position);
-        if (distance < anchor.size * 1.5 && this.keys.has('f')) {
-          this.keys.delete('f');
-          this.planarAnchorSystem.activateAnchor(anchor.id);
-          this.createParticles(anchor.position, 30, '#60A5FA', 0.8);
+        if (distance < anchor.size * 1.5) {
+          if (!this.activeInteractable) {
+            this.activeInteractable = { type: 'field_anchor', text: 'Press [F] to Activate Checkpoint', anchor };
+          }
+
+          if (this.keys.has('f')) {
+            this.keys.delete('f');
+            const activated = this.planarAnchorSystem.activateAnchor(anchor.id);
+            if (activated) {
+              this.createParticles(anchor.position, 50, '#60A5FA', 1.2);
+              // Create activation effect - multiple particle rings
+              for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                  this.createParticles(anchor.position, 40, '#22D3EE', 0.8);
+                }, i * 200);
+              }
+            }
+          }
         }
       }
     });

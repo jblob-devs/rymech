@@ -24,22 +24,6 @@ export class PlanarAnchorSystem {
         interactionRange: 60,
         pulsePhase: 0,
       },
-      {
-        id: generateId(),
-        position: { x: position.x - 90, y: position.y + 40 },
-        type: 'info_sign',
-        interactionRange: 50,
-        rotation: 0,
-        text: 'HOW TO PLAY',
-      },
-      {
-        id: generateId(),
-        position: { x: position.x + 80, y: position.y + 60 },
-        type: 'info_sign',
-        interactionRange: 50,
-        rotation: 0,
-        text: 'LORE: THE SHATTERED EXPANSE',
-      },
     ];
 
     const anchor: PlanarAnchor = {
