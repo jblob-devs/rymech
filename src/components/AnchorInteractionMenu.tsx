@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, MapPin, Zap, Package2, Navigation } from 'lucide-react';
 import { PlanarAnchor } from '../types/game';
 
@@ -68,7 +67,7 @@ export function AnchorInteractionMenu({
             <button
               onClick={() => {
                 onOpenVault();
-                onClose();
+                // Don't call onClose - the vault will handle pausing
               }}
               className="w-full flex items-center gap-3 px-4 py-3 bg-purple-600 hover:bg-purple-500 rounded text-white font-semibold transition-colors"
             >

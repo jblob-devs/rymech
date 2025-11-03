@@ -7,6 +7,8 @@ import {
   Chest,
   WeaponDrop,
   Drone,
+  PlanarAnchor,
+  Vector2,
 } from '../types/game';
 import {
   CANVAS_WIDTH,
@@ -112,6 +114,8 @@ export class GameEngine {
   private vaultSystem: VaultSystem;
   private planarAnchorSystem: PlanarAnchorSystem;
   private currentHarvestingAsteroidId: string | null = null;
+  private vaultInteractionCallback?: () => void;
+  private anchorInteractionCallback?: (anchor: PlanarAnchor) => void;
 
   constructor() {
     this.worldGenerator = new WorldGenerator();
@@ -3163,6 +3167,37 @@ export class GameEngine {
         }
       }
     });
+
+    // Check for planar anchor interactions
+    this.gameState.planarAnchors.forEach(anchor => {
+      if (!anchor.baseCampElements) return;
+
+      anchor.baseCampElements.forEach(element => {
+        const distance = vectorDistance(player.position, element.position);
+        
+        if (distance < (element.interactionRange || 60) && this.keys.has('f')) {
+          this.keys.delete('f'); // Prevent multiple triggers
+
+          if (element.type === 'vault_node' && this.vaultInteractionCallback) {
+            this.vaultInteractionCallback();
+          } else if (element.type === 'campfire' && this.anchorInteractionCallback) {
+            this.anchorInteractionCallback(anchor);
+          }
+        }
+      });
+    });
+
+    // Check for field anchor activation
+    this.gameState.planarAnchors.forEach(anchor => {
+      if (anchor.type === 'field' && !anchor.isActivated) {
+        const distance = vectorDistance(player.position, anchor.position);
+        if (distance < anchor.size * 1.5 && this.keys.has('f')) {
+          this.keys.delete('f');
+          this.planarAnchorSystem.activateAnchor(anchor.id);
+          this.createParticles(anchor.position, 30, '#60A5FA', 0.8);
+        }
+      }
+    });
   }
 
   private spawnResourceDrop(position: Vector2, resourceType: string, amount: number): void {
@@ -3665,6 +3700,26 @@ export class GameEngine {
 
   getInventory(): PlayerInventory {
     return this.inventory;
+  }
+
+  getActivatedAnchors(): PlanarAnchor[] {
+    return this.planarAnchorSystem.getActivatedAnchors();
+  }
+
+  setVaultInteractionCallback(callback: () => void): void {
+    this.vaultInteractionCallback = callback;
+  }
+
+  setAnchorInteractionCallback(callback: (anchor: PlanarAnchor) => void): void {
+    this.anchorInteractionCallback = callback;
+  }
+
+  teleportToAnchor(anchorId: string): void {
+    const anchor = this.gameState.planarAnchors.find(a => a.id === anchorId);
+    if (anchor && anchor.isActivated) {
+      this.gameState.player.position = { ...anchor.position };
+      this.createParticles(anchor.position, 40, '#60A5FA', 0.9);
+    }
   }
 
   purchaseWeaponCrate(): boolean {

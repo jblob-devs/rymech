@@ -12,6 +12,8 @@ import { MultiplayerManager } from './game/MultiplayerManager';
 import { DRONE_DEFINITIONS } from './game/DroneSystem';
 import { DroneAbilities } from './components/DroneAbilities';
 import { SaveMenu } from './components/SaveMenu';
+import { VaultUI } from './components/VaultUI';
+import { AnchorInteractionMenu } from './components/AnchorInteractionMenu';
 
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -24,6 +26,9 @@ function App() {
   const [isAdminOpen, setAdminOpen] = useState(false);
   const [isAdminMode, setAdminMode] = useState(false);
   const [isSaveMenuOpen, setSaveMenuOpen] = useState(false);
+  const [isVaultOpen, setVaultOpen] = useState(false);
+  const [isAnchorMenuOpen, setAnchorMenuOpen] = useState(false);
+  const [currentAnchor, setCurrentAnchor] = useState<import('./types/game').PlanarAnchor | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
   const [touchControlsVisible, setTouchControlsVisible] = useState(false);
   const touchMoveRef = useRef({ x: 0, y: 0 });
@@ -41,6 +46,18 @@ function App() {
     gameEngineRef.current = engine;
     setGameState(engine.getState());
     lastTime.current = performance.now();
+
+    // Set up interaction callbacks for vault and anchor
+    engine.setVaultInteractionCallback(() => {
+      setVaultOpen(true);
+      engine.togglePause();
+    });
+
+    engine.setAnchorInteractionCallback((anchor) => {
+      setCurrentAnchor(anchor);
+      setAnchorMenuOpen(true);
+      engine.togglePause();
+    });
 
     multiplayerManager.onStateUpdate((state) => {
       if (gameEngineRef.current) {
@@ -696,6 +713,44 @@ function App() {
           gameEngine={gameEngineRef.current}
           onClose={() => setSaveMenuOpen(false)}
         />
+      )}
+
+      {gameEngineRef.current && (
+        <>
+          <VaultUI
+            isOpen={isVaultOpen}
+            onClose={() => {
+              setVaultOpen(false);
+              gameEngineRef.current?.togglePause();
+            }}
+            player={gameState.player}
+            vaultSystem={gameEngineRef.current.getVaultSystem()}
+            inventory={gameEngineRef.current.getInventory()}
+          />
+
+          <AnchorInteractionMenu
+            isOpen={isAnchorMenuOpen}
+            onClose={() => {
+              setAnchorMenuOpen(false);
+              gameEngineRef.current?.togglePause();
+            }}
+            anchor={currentAnchor}
+            activatedAnchors={gameEngineRef.current.getActivatedAnchors()}
+            onSetRespawn={() => {
+              if (currentAnchor) {
+                gameEngineRef.current?.setRespawnAnchor(currentAnchor.id);
+              }
+            }}
+            onOpenVault={() => {
+              setAnchorMenuOpen(false);
+              setVaultOpen(true);
+              // Keep game paused when transitioning to vault
+            }}
+            onTeleport={(anchorId: string) => {
+              gameEngineRef.current?.teleportToAnchor(anchorId);
+            }}
+          />
+        </>
       )}
     </div>
   );
